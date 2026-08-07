@@ -2,6 +2,8 @@
 
 > Converted and refined from the 59-page handwritten CRTP exam notes. Designed specifically for seamless Notion workspace import.
 
+**Author:** Gokul Amaran | [LinkedIn](https://linkedin.com/in/gokulamaran) | [Website](https://www.gokulamaran.me)
+
 ---
 
 ## 00 — Quick Reference & Exam Command Cheat Sheet

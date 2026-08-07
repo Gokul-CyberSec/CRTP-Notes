@@ -67,3 +67,12 @@ graph TD
 
 > [!TIP]
 > **Exam Strategy:** Systematically execute enumeration at each hop before escalating privileges. Always preserve ticket artifacts (`.kirbi` / `.pfx`) in `C:\AD\Tools\` for clean session re-entry.
+
+---
+
+## Author & Contact
+
+- **Author:** Gokul Amaran
+- **LinkedIn:** [linkedin.com/in/gokulamaran](https://linkedin.com/in/gokulamaran)
+- **Website:** [gokulamaran.me](https://www.gokulamaran.me)
+
