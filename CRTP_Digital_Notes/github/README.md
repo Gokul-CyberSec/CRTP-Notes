@@ -1,8 +1,5 @@
 # Certified Red Team Professional (CRTP) Digital Exam Notes & Cheat Sheet
 
-> [!NOTE]
-> Digitalized and refined from a comprehensive **59-page handwritten CRTP exam note set**. Formatted specifically for rapid command lookup during active lab exercises and the 24-hour CRTP hands-on exam.
-
 ---
 
 ## Fast Navigation Index
