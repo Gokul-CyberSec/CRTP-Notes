@@ -1,0 +1,4 @@
+root: ./CRTP_Digital_Notes/github
+structure:
+  readme: README.md
+  summary: SUMMARY.md
