@@ -7,6 +7,7 @@
 
 ## Table of Contents
 
+- [Domain Enumeration Execution Checklist](#domain-enumeration-execution-checklist)
 - [Domain & Domain Controller Enumeration](#domain--domain-controller-enumeration)
 - [User & Service Account Enumeration](#user--service-account-enumeration)
 - [Computer & Operating System Discovery](#computer--operating-system-discovery)
@@ -16,6 +17,24 @@
 - [Domain & Forest Trust Enumeration](#domain--forest-trust-enumeration)
 - [Network Shares & Active Session Hunting](#network-shares--active-session-hunting)
 - [Local Admin Access & Remote Execution Enumeration](#local-admin-access--remote-execution-enumeration)
+
+---
+
+## Domain Enumeration Execution Checklist
+
+- [ ] **1. Domain Architecture:** Query FQDN, domain SID, Forest name, and DCs (`Get-Domain`, `Get-DomainController`).
+- [ ] **2. User Enumeration:** Export list of all domain users (`Get-DomainUser`).
+- [ ] **3. Service Accounts (Kerberoasting):** Identify accounts with non-null SPNs (`Get-DomainUser -SPN`).
+- [ ] **4. AS-REP Roasting:** Check for users with Kerberos pre-authentication disabled (`Get-DomainUser -PreauthNotRequired`).
+- [ ] **5. AdminCount Check:** Find accounts protected by AdminSDHolder (`Get-DomainUser -AdminCount`).
+- [ ] **6. Computer Discovery:** List all domain workstations and servers with OS details (`Get-DomainComputer`).
+- [ ] **7. Privileged Groups:** Enumerate Domain Admins, Enterprise Admins, Account Operators, DNSAdmins (`Get-DomainGroupMember`).
+- [ ] **8. OUs & GPO Links:** Map OUs and inspect GPLinks (`Get-DomainOU`, `Get-DomainGPO`).
+- [ ] **9. ACL Enumeration:** Scan object DACLs for interesting ACEs (`Find-InterestingDomainAcl -ResolveGUIDs`).
+- [ ] **10. Trust Mapping:** Enumerate inbound/outbound domain & forest trusts (`Get-DomainTrust`, `Get-ForestTrust`).
+- [ ] **11. Share Discovery:** Scan domain hosts for open network shares (`Find-DomainShare`).
+- [ ] **12. Active Sessions:** Locate logged-in Domain Admins (`Get-NetSession`, `Invoke-SessionHunter`).
+- [ ] **13. Local Admin Access:** Identify hosts where current credentials have administrative rights (`Find-LocalAdminAccess`).
 
 ---
 

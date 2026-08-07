@@ -7,6 +7,7 @@
 
 ## Table of Contents
 
+- [CRTP Exam Master Enumeration & Privilege Escalation Checklist](#crtp-exam-master-enumeration--privilege-escalation-checklist)
 - [PowerView vs. ActiveDirectory Module Comparison Matrix](#powerview-vs-activedirectory-module-comparison-matrix)
 - [ACL & Object Permission Privilege Abuse Matrix](#acl--object-permission-privilege-abuse-matrix)
 - [PowerShell Script & Module Loading](#powershell-script--module-loading)
@@ -21,6 +22,51 @@
 - [Constrained Delegation & S4U](#constrained-delegation--s4u)
 - [AD CS Certificate Abuse](#ad-cs-certificate-abuse)
 - [Post-Exploitation Credentials & Vaults](#post-exploitation-credentials--vaults)
+
+---
+
+## CRTP Exam Master Enumeration & Privilege Escalation Checklist
+
+### Phase 1 — Environment Preparation & Recon Checklist
+- [ ] `Set-ExecutionPolicy -Scope Process Bypass` executed
+- [ ] PowerView dot-sourced (`. .\PowerView.ps1`) or AD Module loaded (`Import-Module .\ActiveDirectory.psd1`)
+- [ ] Check security controls / AMSI evasion (`DefenderCheck.exe`, `Invisi-Shell`)
+
+### Phase 2 — Comprehensive Domain Enumeration Checklist
+- [ ] **Domain & DC Details:** Query domain name, forest SID, DC hostnames (`Get-Domain`, `Get-DomainController`)
+- [ ] **Domain Users:** Enumerate all users (`Get-DomainUser | Select samaccountname`)
+- [ ] **Kerberoastable SPNs:** Find user accounts with SPNs (`Get-DomainUser -SPN`)
+- [ ] **AS-REP Roastable:** Find accounts with `DONT_REQ_PREAUTH` (`Get-DomainUser -PreauthNotRequired`)
+- [ ] **AdminCount Accounts:** Identify accounts protected by AdminSDHolder (`Get-DomainUser -AdminCount`)
+- [ ] **Domain Computers:** Enumerate hostnames, OS versions (`Get-DomainComputer`)
+- [ ] **Domain Groups:** Enumerate Domain Admins, Enterprise Admins, Account Operators, DNSAdmins (`Get-DomainGroupMember`)
+- [ ] **OUs & GPOs:** List Organizational Units and linked Group Policy Objects (`Get-DomainOU`, `Get-DomainGPO`)
+- [ ] **Domain Object ACLs:** Scan for non-default privileges (`Find-InterestingDomainAcl -ResolveGUIDs`)
+- [ ] **Domain & Forest Trusts:** Map inbound/outbound domain and forest trusts (`Get-DomainTrust`, `Get-ForestTrust`)
+- [ ] **Network Shares:** Scan domain machines for readable shares (`Find-DomainShare`)
+- [ ] **Active Sessions:** Locate active sessions of privileged domain users (`Get-NetSession`, `Invoke-SessionHunter`)
+- [ ] **Local Admin Access:** Discover machines where current user has administrative rights (`Find-LocalAdminAccess`)
+
+### Phase 3 — Privilege Escalation & Privilege Abuse Checklist
+- [ ] **Local PrivEsc:** Run PowerUp (`Invoke-AllChecks`) for unquoted service paths, modifiable services, DLL hijacking
+- [ ] **ACL Misconfigurations:** Check for `GenericAll`, `GenericWrite`, `WriteDacl`, `WriteOwner`, `ForceChangePassword`, `AddMembers`
+- [ ] **GPO Abuse:** Check for write access over GPOs (`write_gpo_dacl`, LNK relay, SYSVOL scripts)
+- [ ] **Jenkins / CI/CD Abuse:** Check build steps, execute reverse shell via batch command
+- [ ] **Unconstrained Delegation:** Identify machines with `TRUSTED_FOR_DELEGATION` and harvest TGTs
+- [ ] **Constrained Delegation (S4U):** Identify accounts with `TRUSTED_TO_AUTH_FOR_DELEGATION`, execute Rubeus S4U
+- [ ] **Resource-Based Constrained Delegation (RBCD):** Configure `msDS-AllowedToActOnBehalfOfOtherIdentity` on target computer
+- [ ] **AD CS Certificate Abuse (ESC1):** Audit certificate templates (`Certify.exe find /vulnerable`), request PFX, PKINIT TGT
+
+### Phase 4 — Credential Access & Lateral Movement Checklist
+- [ ] **LSASS Dumping:** Extract credentials via `SafetyKatz.exe` or `sekurlsa::logonpasswords`
+- [ ] **LSASS PPL Bypass:** Load driver `mimidrv.sys` if LSA protection is active
+- [ ] **Overpass-the-Hash (OPTH):** Request Kerberos TGT using NTLM hash / AES key (`Rubeus.exe asktgt`)
+- [ ] **DCSync:** Dump `krbtgt` / Domain Admin hashes if account has replication permissions
+- [ ] **Lateral Movement:** Connect to target via WinRM (`Enter-PSSession`), WMI (`Invoke-WmiMethod`), or SCM (`sc.exe`)
+- [ ] **Golden Ticket:** Forge TGT with `krbtgt` key (`Rubeus.exe golden`)
+- [ ] **Silver Ticket:** Forge TGS for specific service (`Rubeus.exe silver`)
+- [ ] **Credential Hunting:** Check `ConsoleHost_history.txt`, registry keys, KeePass `.kdbx`, Windows Vaults (`vaultcmd`)
+- [ ] **NTDS Dumping:** Extract SAM/SYSTEM or `ntds.dit` via Volume Shadow Copy (VSS)
 
 ---
 

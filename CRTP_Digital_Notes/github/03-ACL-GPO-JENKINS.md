@@ -7,11 +7,27 @@
 
 ## Table of Contents
 
+- [ACL, GPO & Delegation Abuse Checklist](#acl-gpo--delegation-abuse-checklist)
 - [Local Privilege Escalation (PowerUp / SCM Abuse)](#local-privilege-escalation-powerup--scm-abuse)
 - [Jenkins CI/CD Pipeline Exploitation](#jenkins-cicd-pipeline-exploitation)
 - [GPO Authentication Coercion & NTLM Relay Flow](#gpo-authentication-coercion--ntlm-relay-flow)
 - [GPO DACL Modification & Malicious Policy Injection](#gpo-dacl-modification--malicious-policy-injection)
 - [Permission Delegation Attacks & Abuse Primitives](#permission-delegation-attacks--abuse-primitives)
+
+---
+
+## ACL, GPO & Delegation Abuse Checklist
+
+- [ ] **1. Local Privilege Escalation:** Execute PowerUp (`Invoke-AllChecks`) to find unquoted service paths and modifiable service binaries.
+- [ ] **2. Service Abuse:** Execute `Invoke-ServiceAbuse` to elevate local privileges to Administrator.
+- [ ] **3. Jenkins CI/CD Audit:** Check SRP/AppLocker rules and inject build task reverse shells.
+- [ ] **4. GPO DACL Verification:** Check write/DACL permissions over GPOs using `Get-DomainGPO` and BloodHound.
+- [ ] **5. GPO Coercion / Relay:** Place `.LNK` shortcut files or stage SMB path on target GPO shares for NTLM relaying.
+- [ ] **6. Permission Abuse Primitives:**
+  - [ ] **GenericAll / WriteDacl:** Grant full rights over target accounts or modify properties.
+  - [ ] **ForceChangePassword:** Reset user account password (`Set-ADAccountPassword -Reset`).
+  - [ ] **AddMembers:** Add controlled account into privileged groups (`Add-DomainGroupMember`).
+  - [ ] **WriteOwner:** Take ownership of target domain objects (`Set-DomainObjectOwner`).
 
 ---
 

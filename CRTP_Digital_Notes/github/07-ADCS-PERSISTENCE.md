@@ -7,12 +7,30 @@
 
 ## Table of Contents
 
+- [AD CS & Domain Persistence Checklist](#ad-cs--domain-persistence-checklist)
 - [AD CS Architecture & Terminology](#ad-cs-architecture--terminology)
 - [Vulnerable Certificate Template Criteria (ESC1 Checklist)](#vulnerable-certificate-template-criteria-esc1-checklist)
 - [AD CS ESC1 Escalation Flow Diagram](#ad-cs-esc1-escalation-flow-diagram)
 - [Certificate Enrollment & PKINIT Authentication (Rubeus)](#certificate-enrollment--pkinit-authentication-rubeus)
 - [CA Private Key Extraction & ForgeCert Persistence](#ca-private-key-extraction--forgecert-persistence)
 - [SIDHistory Persistence Injection (DSInternals)](#sidhistory-persistence-injection-dsinternals)
+
+---
+
+## AD CS & Domain Persistence Checklist
+
+- [ ] **1. Template Audit (ESC1):** Run `Certify.exe find /vulnerable` or `Invoke-PKIAudit` to audit PKI templates.
+- [ ] **2. ESC1 Vulnerability Verification:** Verify template meets all four conditions:
+  - [ ] Client Authentication EKU enabled
+  - [ ] `CT_FLAG_ENROLLEE_SUPPLIES_SUBJECT` (SAN control) enabled
+  - [ ] Manager approval disabled
+  - [ ] Low-privileged account holds Enroll rights
+- [ ] **3. Certificate Request:** Request certificate specifying target UPN (`Administrator@domain.local`) via MMC or `Certify.exe`.
+- [ ] **4. Export PFX:** Export certificate with private key to `.pfx` file (`cert.pfx`).
+- [ ] **5. PKINIT TGT Request:** Request Administrator TGT via Rubeus using exported certificate (`Rubeus.exe asktgt /certificate:cert.pfx`).
+- [ ] **6. CA Private Key Persistence:** Export CA private key using Mimikatz (`crypto::certificates /export`).
+- [ ] **7. Offline Certificate Forgery:** Forge certificates offline using `ForgeCert.exe` for arbitrary identities.
+- [ ] **8. SIDHistory Injection:** Inject `Domain Admins` group SID (`S-1-5-21-...-512`) into standard user's `SIDHistory` attribute using `DSInternals` (`Add-ADDBSidHistory`).
 
 ---
 

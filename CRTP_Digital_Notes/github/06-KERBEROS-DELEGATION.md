@@ -7,6 +7,7 @@
 
 ## Table of Contents
 
+- [Kerberos & Delegation Abuse Checklist](#kerberos--delegation-abuse-checklist)
 - [Golden Ticket vs. Silver Ticket Comparison](#golden-ticket-vs-silver-ticket-comparison)
 - [Golden Ticket Creation (Rubeus & Mimikatz)](#golden-ticket-creation-rubeus--mimikatz)
 - [Silver Ticket Forgery](#silver-ticket-forgery)
@@ -14,6 +15,21 @@
 - [S4U Constrained Delegation Flow Diagram](#s4u-constrained-delegation-flow-diagram)
 - [Constrained Delegation Exploitation (Rubeus & Kekeo)](#constrained-delegation-exploitation-rubeus--kekeo)
 - [Resource-Based Constrained Delegation (RBCD)](#resource-based-constrained-delegation-rbcd)
+
+---
+
+## Kerberos & Delegation Abuse Checklist
+
+- [ ] **1. Golden Ticket Requirements Check:** Obtain `krbtgt` account AES256 key/hash via DCSync and Domain SID (`Get-Domain`).
+- [ ] **2. Golden Ticket Forgery:** Generate and import TGT using Rubeus or Mimikatz (`Rubeus.exe golden /aes256:<KRBTGT_AES256>`).
+- [ ] **3. Silver Ticket Forgery:** Extract target service account hash and forge TGS (`Rubeus.exe silver /service:http/<TARGET_FQDN>`).
+- [ ] **4. WMI Silver Ticket Check:** Verify both `HOST` and `RPCSS` service tickets are generated for WMI execution.
+- [ ] **5. Constrained Delegation Enumeration:** Query accounts with `TrustedToAuthForDelegation` (`Get-NetUser -TrustedToAuth`, `Get-DomainComputer -TrustedToAuth`).
+- [ ] **6. S4U Execution:** Perform S4U2self + S4U2proxy attack using Rubeus (`Rubeus.exe s4u /user:<DELEGATED_ACCOUNT> /impersonateuser:Administrator`).
+- [ ] **7. Resource-Based Constrained Delegation (RBCD):**
+  - [ ] Create fake computer account (`New-MachineAccount`).
+  - [ ] Set `msDS-AllowedToActOnBehalfOfOtherIdentity` on target computer object.
+  - [ ] Execute Rubeus S4U impersonating Domain Administrator.
 
 ---
 

@@ -7,12 +7,25 @@
 
 ## Table of Contents
 
+- [Credential Hunting Execution Checklist](#credential-hunting-execution-checklist)
 - [High-Yield Clear-Text Credential Target Locations](#high-yield-clear-text-credential-target-locations)
 - [PowerShell PSReadLine History & Registry Searches](#powershell-psreadline-history--registry-searches)
 - [KeePass Password Manager Exploitation](#keepass-password-manager-exploitation)
 - [Windows Credential Manager & DPAPI Vaults](#windows-credential-manager--dpapi-vaults)
 - [SAM & SYSTEM Hive Extraction via Volume Shadow Copy (VSS)](#sam--system-hive-extraction-via-volume-shadow-copy-vss)
 - [NTDS.dit Active Directory Database Architecture](#ntdsdit-active-directory-database-architecture)
+
+---
+
+## Credential Hunting Execution Checklist
+
+- [ ] **1. Unattended Install Files:** Search `Unattend.xml`, `sysprep.inf`, `web.config`, GPP `Groups.xml`.
+- [ ] **2. PSReadLine Command History:** Check `ConsoleHost_history.txt` for plain-text passwords in executed commands.
+- [ ] **3. Registry Password Mining:** Search `HKLM` and `HKCU` hives for `REG_SZ` keys matching "password".
+- [ ] **4. KeePass Database (.kdbx):** Locate `.kdbx` files (`dir /s /b C:\*.kdbx`), migrate into user session context, capture master key/logins.
+- [ ] **5. Windows Credential Vaults:** Enumerate DPAPI vaults (`vaultcmd /list`), decrypt Web Credentials via `Get-WebCredentials.ps1`.
+- [ ] **6. SAM & SYSTEM Hive Extraction:** Create Volume Shadow Copy (`wmic shadowcopy call create`), copy SAM and SYSTEM hives, extract local account hashes via Impacket `secretsdump.py`.
+- [ ] **7. NTDS.dit Active Directory Database:** Extract `ntds.dit` database and SYSTEM hive via VSS or DCSync to dump all domain user hashes.
 
 ---
 
