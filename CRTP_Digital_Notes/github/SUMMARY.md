@@ -10,3 +10,5 @@
 * [06 — Kerberos & Delegation](06-KERBEROS-DELEGATION.md)
 * [07 — AD CS & Persistence](07-ADCS-PERSISTENCE.md)
 * [08 — Credential Hunting & Vaults](08-CREDENTIAL-HUNTING.md)
+* [09 — Cross-Trust & SQL Server Links](09-CROSS-TRUST-AND-SQL.md)
+* [10 — Defensive Controls & Event Logs](10-DEFENSIVE-CONTROLS-AND-EVENTS.md)

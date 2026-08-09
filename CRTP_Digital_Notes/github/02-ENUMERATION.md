@@ -96,6 +96,27 @@ Get-ADUser -Filter {ServicePrincipalName -ne "$null"} -Properties ServicePrincip
 
 ---
 
+## Protected Groups & AdminSDHolder Concepts
+
+The `AdminSDHolder` object (`CN=AdminSDHolder,CN=System,DC=domain,DC=local`) protects privileged users and groups (Domain Admins, Enterprise Admins, Schema Admins, Account Operators).
+
+Every 60 minutes, the **SDProp (Security Descriptor Propagator)** process runs on the DC holding the PDC Emulator role:
+1. Scans all accounts where `adminCount = 1`.
+2. Overwrites their ACL with the ACL of `AdminSDHolder`.
+3. Disables inheritance on those objects.
+
+### Enumerate AdminSDHolder Objects
+```powershell
+# PowerView: Find protected accounts with adminCount = 1
+Get-DomainUser -AdminCount
+Get-DomainGroup -AdminCount
+
+# PowerView: Inspect AdminSDHolder ACL
+Get-DomainObjectAcl -Identity "CN=AdminSDHolder,CN=System,DC=dcorp,DC=moneycorp,DC=local" -ResolveGUIDs
+```
+
+---
+
 ## Computer & Operating System Discovery
 
 ```powershell
