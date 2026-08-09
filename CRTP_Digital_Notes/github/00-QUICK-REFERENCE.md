@@ -40,6 +40,25 @@
 
 ---
 
+## NetExec (nxe / cme) — Initial SMB Enumeration
+
+```bash
+# Check SMB signing (find hosts with signing disabled for relaying)
+nxe smb <TARGET_IP_OR_RANGE> --gen-relay-list hosts.txt
+
+# Null session & Guest session share enumeration
+nxe smb <TARGET_IP> -u '' -p '' --shares
+nxe smb <TARGET_IP> -u 'Guest' -p '' --shares
+
+# Authenticated share listing & logged-on users
+nxe smb <TARGET_IP> -u '<USER>' -p '<PASSWORD>' -d <DOMAIN> --shares --loggedon-users
+
+# Spider shares for password/config files
+nxe smb <TARGET_IP> -u '<USER>' -p '<PASSWORD>' -d <DOMAIN> --spider "C$" --pattern "unattend*,*.kdbx,*.config,pass*"
+```
+
+---
+
 ## Script & Module Loading
 
 ```powershell

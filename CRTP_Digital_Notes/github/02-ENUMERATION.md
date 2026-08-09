@@ -5,6 +5,60 @@
 
 ---
 
+## Initial SMB Enumeration
+
+Perform unauthenticated or authenticated SMB checks across domain targets.
+
+### NetExec (nxe / cme)
+```bash
+# Check SMB signing across subnet / targets (find hosts with signing disabled)
+nxe smb <TARGET_IP_OR_RANGE> --gen-relay-list hosts.txt
+
+# Null session check
+nxe smb <TARGET_IP> -u '' -p '' --shares
+
+# Guest session check
+nxe smb <TARGET_IP> -u 'Guest' -p '' --shares
+
+# Authenticated share listing & permissions
+nxe smb <TARGET_IP> -u '<USER>' -p '<PASSWORD>' -d <DOMAIN> --shares
+
+# Search shares for sensitive files (passwords, configs, keys)
+nxe smb <TARGET_IP> -u '<USER>' -p '<PASSWORD>' -d <DOMAIN> --spider "C$" --pattern "unattend*,*.kdbx,*.config,pass*"
+
+# Enumerate logged-on users and active shares
+nxe smb <TARGET_IP> -u '<USER>' -p '<PASSWORD>' -d <DOMAIN> --loggedon-users --shares
+```
+
+### smbclient & smbmap
+```bash
+# Anonymous share listing
+smbclient -L //<TARGET_IP> -N
+smbmap -H <TARGET_IP> -u 'Guest' -p ''
+
+# Authenticated share listing with smbmap
+smbmap -H <TARGET_IP> -u '<USER>' -p '<PASSWORD>' -d <DOMAIN>
+
+# Connect and download files via smbclient
+smbclient //<TARGET_IP>/<SHARE> -U '<DOMAIN>\<USER>' -c 'recurse ON; prompt OFF; mget *'
+```
+
+### enum4linux-ng
+```bash
+enum4linux-ng -A <TARGET_IP>
+```
+
+### PowerView Shares Enumeration
+```powershell
+# Enumerate readable shares across domain hosts
+Find-DomainShare
+
+# Check share permissions for current user context
+Find-DomainShare -CheckShareAccess
+```
+
+---
+
 ## Domain & Domain Controller Enumeration
 
 ```powershell
