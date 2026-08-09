@@ -100,16 +100,6 @@ sc.exe \\<TARGET_HOST> start <SERVICE_NAME>
 
 When isolated subnet hosts are unreachable directly from the attacker box, configure port forwarding on an intermediate dual-homed machine using native Windows `netsh`.
 
-```mermaid
-graph LR
-    Attacker["Attacker Box<br>(172.16.50.10)"]
-    Pivot["Pivot / Jump Host<br>(172.16.50.20 / 10.10.10.20)"]
-    Target["Internal Target Host<br>(10.10.10.50:8080)"]
-
-    Attacker -- "1. Connects to 172.16.50.20:8080" --> Pivot
-    Pivot -- "2. Netsh Portproxy forwards to 10.10.10.50:8080" --> Target
-```
-
 ### Portproxy Setup Commands
 
 ```cmd

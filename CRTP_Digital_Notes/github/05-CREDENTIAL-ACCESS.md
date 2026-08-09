@@ -5,25 +5,6 @@
 
 ---
 
-## Credential Extraction Flow
-
-```mermaid
-graph TD
-    Access["Local Administrative Access"]
-    Choice{Target Mechanism}
-
-    Access --> Choice
-    Choice -- "Direct Memory Access" --> LSASS["Dump LSASS (ProcDump / Mimikatz / SafetyKatz)"]
-    Choice -- "Registry Hives" --> SAM["Extract SAM & SECURITY Hives (Local Hashes & LSA Secrets)"]
-    Choice -- "Replication Privileges" --> DCSync["DCSync via DRSUAPI (Remote krbtgt / Admin Hashes)"]
-
-    LSASS --> NTLM["NTLM Hashes / AES Keys / TGTs"]
-    SAM --> LocalAdmin["Local Administrator Password Hashes"]
-    DCSync --> DomainAdmin["Domain Admin / Golden Ticket Keys"]
-```
-
----
-
 ## LSASS & Credential Architecture
 
 The **Local Security Authority Subsystem Service (LSASS)** (`lsass.exe`) manages local security policies and authenticates users.

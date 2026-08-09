@@ -18,26 +18,6 @@
 
 An Active Directory environment is structured hierarchically across Forests, Domains, and Organizational Units (OUs).
 
-```mermaid
-graph TD
-    Forest["Active Directory Forest (Schema & Global Catalog Boundary)"]
-    Domain1["Root Domain (e.g. moneycorp.local)"]
-    Domain2["Child Domain (e.g. dcorp.moneycorp.local)"]
-    OU1["OU: Servers"]
-    OU2["OU: Admins"]
-    OU3["OU: Users"]
-    GPO1["Default Domain Policy GPO"]
-    GPO2["Server Hardening GPO"]
-
-    Forest --> Domain1
-    Forest --> Domain2
-    Domain2 --> OU1
-    Domain2 --> OU2
-    Domain2 --> OU3
-    GPO1 -. Linked to .-> Domain2
-    GPO2 -. Linked to .-> OU1
-```
-
 ### Core Services
 - **Schema:** Defines all object classes and attributes allowed in the directory.
 - **Global Catalog (GC):** A distributed data repository containing a searchable subset of attributes for every object in the forest (Port 3268/3269).
@@ -50,26 +30,6 @@ graph TD
 
 Kerberos is the primary authentication protocol in Active Directory (Port 88). It relies on symmetric key cryptography and trusted third-party Key Distribution Centers (KDC, running on DCs).
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Client
-    participant KDC as KDC (Domain Controller)
-    participant Service as Target Service / Server
-
-    Note over Client,KDC: Phase 1: Ticket Granting Ticket (TGT) Request
-    Client->>KDC: AS-REQ (Username + Timestamp encrypted with Client Hash)
-    KDC-->>Client: AS-REP (TGT encrypted with krbtgt key + Session Key)
-
-    Note over Client,KDC: Phase 2: Service Ticket (TGS) Request
-    Client->>KDC: TGS-REQ (TGT + Authenticator + Target SPN)
-    KDC-->>Client: TGS-REP (TGS Ticket encrypted with Service Hash + Service Session Key)
-
-    Note over Client,Service: Phase 3: Service Access
-    Client->>Service: AP-REQ (TGS Ticket + Authenticator)
-    Service-->>Client: AP-REP (Access Granted / Mutual Auth)
-```
-
 > [!IMPORTANT]
 > - **TGT Encryption:** Encrypted with the `krbtgt` account password hash/AES key. Anyone with the `krbtgt` hash can forge a TGT (**Golden Ticket**).
 > - **TGS Encryption:** Encrypted with the service account password hash/AES key. Anyone with the service account hash can forge a TGS (**Silver Ticket**).
@@ -79,21 +39,6 @@ sequenceDiagram
 ## NTLM Challenge/Response Authentication
 
 NTLM is used when Kerberos is unavailable (e.g., connecting via IP address, cross-forest non-transitive trusts, or legacy applications).
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Client
-    participant Server as Target Server
-    participant DC as Domain Controller
-
-    Client->>Server: 1. Negotiate / Type 1 Message
-    Server-->>Client: 2. Challenge / Type 2 Message (8-byte random challenge)
-    Client->>Server: 3. Authenticate / Type 3 Message (Response encrypted with NTLM hash)
-    Server->>DC: 4. Netlogon Validate Request (Challenge + Response)
-    DC-->>Server: 5. Validation Result (Success/Failure)
-    Server-->>Client: 6. Access Granted / Denied
-```
 
 > [!WARNING]
 > **Relay Risks:** NTLM Type 3 responses can be relayed to target hosts if SMB Signing or HTTP Extended Protection for Authentication (EPA) is not enforced.

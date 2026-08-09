@@ -71,25 +71,6 @@ Rubeus.exe silver /service:rpcss/<TARGET_FQDN> /aes256:<SERVICE_AES256> /sid:<DO
 
 Constrained delegation uses **S4U2self** (requests a service ticket to self on behalf of any user) and **S4U2proxy** (uses that ticket to request a service ticket to the allowed downstream service).
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Attacker as Attacker / Service Account
-    participant KDC as Domain Controller (KDC)
-    participant Target as Target Host / Service
-
-    Note over Attacker,KDC: Step 1: S4U2self Request
-    Attacker->>KDC: Request TGS for self on behalf of Domain Admin (Administrator)
-    KDC-->>Attacker: Returns Forwardable TGS for Administrator to Service
-
-    Note over Attacker,KDC: Step 2: S4U2proxy Request
-    Attacker->>KDC: Request TGS for Target SPN (e.g. cifs/DC01) presenting S4U2self TGS
-    KDC-->>Attacker: Returns TGS for Administrator to cifs/DC01
-
-    Note over Attacker,Target: Step 3: Service Access
-    Attacker->>Target: Authenticate to Target Service as Domain Admin
-```
-
 ---
 
 ## Constrained Delegation Exploitation

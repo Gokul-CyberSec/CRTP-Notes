@@ -37,22 +37,6 @@ reg query HKCU /f password /t REG_SZ /s
 
 ## KeePass Password Manager Exploitation
 
-```mermaid
-graph TD
-    GainAccess["Gain SYSTEM Access on Workstation"]
-    FindDB["Search Filesystem for *.kdbx Database Files"]
-    MigrateSession["Migrate Process into Target User Session Scope"]
-    Keylog["Keylog / Capture Master Password (or Dump KeePass Memory)"]
-    DownloadDB["Exfiltrate *.kdbx File to Attacker Machine"]
-    Decrypt["Open Database via KeePass / KeePass2John & Crack"]
-
-    GainAccess --> FindDB
-    FindDB --> MigrateSession
-    MigrateSession --> Keylog
-    Keylog --> DownloadDB
-    DownloadDB --> Decrypt
-```
-
 ### Steps
 1. Find `.kdbx` files:
    ```cmd

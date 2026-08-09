@@ -40,25 +40,15 @@ Replace these across all commands with your lab/exam values:
 
 ## Exam Attack Flow
 
-```mermaid
-graph TD
-    Phase1["1. Initial Access & Recon"] --> Phase2["2. Domain Enumeration"]
-    Phase2 --> Phase3{"3. Path Identification"}
-
-    Phase3 -- "Delegated Rights / ACLs" --> ACL["AddMember / ForceChangePassword / GenericAll"]
-    Phase3 -- "Local Admin Rights" --> LocalAdmin["LSASS Dump / SafetyKatz / OPTH"]
-    Phase3 -- "Unquoted / Weak Services" --> Service["PowerUp Service Abuse"]
-    Phase3 -- "Vulnerable Certificate Templates" --> ADCS["AD CS ESC1 / SAN Impersonation"]
-
-    ACL --> Phase4["4. Domain Privilege Escalation"]
-    LocalAdmin --> Phase4
-    Service --> Phase4
-    ADCS --> Phase4
-
-    Phase4 --> Phase5["5. Domain Controller Escalation"]
-    Phase5 --> DCSync["DCSync krbtgt Key / Golden Ticket Forgery"]
-    DCSync --> Phase6["6. Forest Trust Escalation & Persistence"]
-```
+1. **Initial Access & Recon** → Establish local footholds and bypass security controls.
+2. **Domain Enumeration** → Discover users, computers, groups, trusts, ACLs, and delegation settings.
+3. **Path Identification & Privilege Escalation:**
+   - **Delegated Rights / ACLs:** AddMember / ForceChangePassword / GenericAll
+   - **Local Admin Rights:** LSASS Dump / SafetyKatz / OPTH
+   - **Unquoted / Weak Services:** PowerUp Service Abuse
+   - **Vulnerable Certificate Templates:** AD CS ESC1 / SAN Impersonation
+4. **Domain Controller Escalation** → DCSync krbtgt Key / Golden Ticket Forgery
+5. **Forest Trust Escalation & Persistence** → Cross-forest trust abuse and persistent access mechanisms.
 
 > [!TIP]
 > Systematically enumerate at each hop before escalating. Preserve ticket artifacts (`.kirbi` / `.pfx`) in `C:\AD\Tools\` for session re-entry.

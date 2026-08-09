@@ -36,19 +36,11 @@ Certify.exe find /vulnerable
 
 ## ESC1 Escalation Flow
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Attacker as Attacker (Student)
-    participant CA as Certificate Authority (CA)
-    participant KDC as Domain Controller (KDC / PKINIT)
-
-    Attacker->>CA: 1. Request Certificate for ESC1 Template with SAN = Administrator
-    CA-->>Attacker: 2. Issues Certificate (.pfx) with Administrator identity
-    Attacker->>KDC: 3. AS-REQ with Certificate via PKINIT (Rubeus asktgt)
-    KDC-->>Attacker: 4. Returns Administrator TGT + NTLM Hash / PAC Session Key
-    Attacker->>KDC: 5. Pass-The-Ticket / Connect to DC as Domain Admin
-```
+1. Request Certificate for ESC1 Template with SAN = Administrator
+2. CA issues Certificate (`.pfx`) with Administrator identity
+3. AS-REQ with Certificate via PKINIT (`Rubeus asktgt`)
+4. DC returns Administrator TGT + NTLM Hash / PAC Session Key
+5. Pass-The-Ticket / Connect to DC as Domain Admin
 
 ---
 
@@ -95,16 +87,6 @@ Rubeus.exe asktgt /user:Administrator /certificate:C:\AD\Tools\forged_admin.pfx 
 ## SIDHistory Persistence Injection
 
 `SIDHistory` preserves access rights during domain migrations. Adding `Domain Admins` SID (`-512`) to a standard user's `SIDHistory` grants full DA privileges.
-
-```mermaid
-graph LR
-    User["Standard User (student1)<br>SID: S-1-5-21-...-1105"]
-    Inject["Inject SIDHistory<br>S-1-5-21-...-512 (Domain Admins)"]
-    AdminRights["Evaluated Access: Domain Admin Rights"]
-
-    User --> Inject
-    Inject --> AdminRights
-```
 
 ### Execution (Requires Offline NTDS.dit or DA Access)
 ```powershell
