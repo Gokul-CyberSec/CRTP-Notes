@@ -5,26 +5,12 @@
 
 ---
 
-## Table of Contents
-
-- [Security Principals & Objects](#security-principals--objects)
-- [Active Directory Core Architecture](#active-directory-core-architecture)
-- [Kerberos Authentication Architecture](#kerberos-authentication-architecture)
-- [NTLM Challenge/Response Authentication](#ntlm-challengeresponse-authentication)
-- [LDAP & Directory Operations](#ldap--directory-operations)
-- [PowerShell Scripting & Module Loading](#powershell-scripting--module-loading)
-- [PowerShell Security Bypasses & AV Evasion](#powershell-security-bypasses--av-evasion)
-
----
-
 ## Security Principals & Objects
 
 - **Users:** Individual user identities authenticated by the Domain Controller (DC).
 - **Computers/Machines:** Machine identities represented in AD with a trailing `$` (e.g., `DC01$`, `WEBSRV01$`). Machine account passwords rotate automatically every 30 days by default.
 - **Groups:** Security groups used to assign rights and permissions to users/computers.
 - **Service Accounts:** Accounts used to run services/daemon processes (Managed Service Accounts, gMSAs, or standard user accounts with SPNs).
-
-> **Source:** handwritten p. 1.
 
 ---
 
@@ -58,15 +44,11 @@ graph TD
 - **Replication Service:** Synchronizes directory updates across all Domain Controllers using RPC (MS-DRSR).
 - **Group Policy Objects (GPOs):** Configurations applied to Sites, Domains, or OUs to enforce security settings and user environment policies.
 
-> **Source:** handwritten pp. 1–2, 6–7.
-
 ---
 
 ## Kerberos Authentication Architecture
 
 Kerberos is the primary authentication protocol in Active Directory (Port 88). It relies on symmetric key cryptography and trusted third-party Key Distribution Centers (KDC, running on DCs).
-
-### Kerberos Flow Diagram
 
 ```mermaid
 sequenceDiagram
@@ -92,8 +74,6 @@ sequenceDiagram
 > - **TGT Encryption:** Encrypted with the `krbtgt` account password hash/AES key. Anyone with the `krbtgt` hash can forge a TGT (**Golden Ticket**).
 > - **TGS Encryption:** Encrypted with the service account password hash/AES key. Anyone with the service account hash can forge a TGS (**Silver Ticket**).
 
-> **Source:** handwritten pp. 2–3.
-
 ---
 
 ## NTLM Challenge/Response Authentication
@@ -118,16 +98,12 @@ sequenceDiagram
 > [!WARNING]
 > **Relay Risks:** NTLM Type 3 responses can be relayed to target hosts if SMB Signing or HTTP Extended Protection for Authentication (EPA) is not enforced.
 
-> **Source:** handwritten p. 4.
-
 ---
 
 ## LDAP & Directory Operations
 
 - **LDAP (Lightweight Directory Access Protocol):** Protocol used to query and update directory objects (Port 389, LDAPS Port 636).
 - **LDAP Pass-Back Attack:** Threat vector where rogue network devices or misconfigured printers pass back credentials via clear-text LDAP authentication requests to an attacker-controlled listener.
-
-> **Source:** handwritten p. 5.
 
 ---
 
@@ -145,8 +121,6 @@ Import-Module C:\AD\Tools\ADModule-master\ActiveDirectory\ActiveDirectory.psd1
 # Enumerate exported module cmdlets
 Get-Command -Module ActiveDirectory
 ```
-
-> **Source:** handwritten pp. 7–8.
 
 ---
 
@@ -166,5 +140,3 @@ Get-Command -Module ActiveDirectory
 C:\AD\Tools\DefenderCheck.exe
 C:\AD\Tools\PowerUp.ps1
 ```
-
-> **Source:** handwritten pp. 8–9.

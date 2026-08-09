@@ -5,39 +5,6 @@
 
 ---
 
-## Table of Contents
-
-- [Domain Enumeration Execution Checklist](#domain-enumeration-execution-checklist)
-- [Domain & Domain Controller Enumeration](#domain--domain-controller-enumeration)
-- [User & Service Account Enumeration](#user--service-account-enumeration)
-- [Computer & Operating System Discovery](#computer--operating-system-discovery)
-- [Group & Membership Enumeration](#group--membership-enumeration)
-- [Organizational Unit (OU) & GPO Enumeration](#organizational-unit-ou--gpo-enumeration)
-- [Access Control List (ACL) Enumeration](#access-control-list-acl-enumeration)
-- [Domain & Forest Trust Enumeration](#domain--forest-trust-enumeration)
-- [Network Shares & Active Session Hunting](#network-shares--active-session-hunting)
-- [Local Admin Access & Remote Execution Enumeration](#local-admin-access--remote-execution-enumeration)
-
----
-
-## Domain Enumeration Execution Checklist
-
-- [ ] **1. Domain Architecture:** Query FQDN, domain SID, Forest name, and DCs (`Get-Domain`, `Get-DomainController`).
-- [ ] **2. User Enumeration:** Export list of all domain users (`Get-DomainUser`).
-- [ ] **3. Service Accounts (Kerberoasting):** Identify accounts with non-null SPNs (`Get-DomainUser -SPN`).
-- [ ] **4. AS-REP Roasting:** Check for users with Kerberos pre-authentication disabled (`Get-DomainUser -PreauthNotRequired`).
-- [ ] **5. AdminCount Check:** Find accounts protected by AdminSDHolder (`Get-DomainUser -AdminCount`).
-- [ ] **6. Computer Discovery:** List all domain workstations and servers with OS details (`Get-DomainComputer`).
-- [ ] **7. Privileged Groups:** Enumerate Domain Admins, Enterprise Admins, Account Operators, DNSAdmins (`Get-DomainGroupMember`).
-- [ ] **8. OUs & GPO Links:** Map OUs and inspect GPLinks (`Get-DomainOU`, `Get-DomainGPO`).
-- [ ] **9. ACL Enumeration:** Scan object DACLs for interesting ACEs (`Find-InterestingDomainAcl -ResolveGUIDs`).
-- [ ] **10. Trust Mapping:** Enumerate inbound/outbound domain & forest trusts (`Get-DomainTrust`, `Get-ForestTrust`).
-- [ ] **11. Share Discovery:** Scan domain hosts for open network shares (`Find-DomainShare`).
-- [ ] **12. Active Sessions:** Locate logged-in Domain Admins (`Get-NetSession`, `Invoke-SessionHunter`).
-- [ ] **13. Local Admin Access:** Identify hosts where current credentials have administrative rights (`Find-LocalAdminAccess`).
-
----
-
 ## Domain & Domain Controller Enumeration
 
 ```powershell
@@ -49,7 +16,6 @@ Get-DomainController
 Get-ADDomain
 Get-ADDomainController -Filter *
 ```
-> **Source:** handwritten pp. 9–10.
 
 ---
 
@@ -73,7 +39,6 @@ Get-ADUser -Identity <USER> -Properties *
 Get-ADUser -Filter {AdminCount -eq 1}
 Get-ADUser -Filter {ServicePrincipalName -ne "$null"} -Properties ServicePrincipalName
 ```
-> **Source:** handwritten pp. 9–11.
 
 ---
 
@@ -88,7 +53,6 @@ Get-DomainComputer | Select-Object samaccountname,logoncount,operatingsystem
 # AD Module: Computer enumeration equivalent
 Get-ADComputer -Filter * -Properties OperatingSystem,DNSHostName
 ```
-> **Source:** handwritten pp. 10, 15.
 
 ---
 
@@ -106,7 +70,6 @@ Get-ADGroup -Filter *
 Get-ADGroup -Filter {Name -like "*admin*"}
 Get-ADGroupMember -Identity 'Domain Admins'
 ```
-> **Source:** handwritten pp. 11, 15.
 
 ---
 
@@ -133,7 +96,6 @@ Get-DomainGPO -Identity '<GPO_NAME_OR_GUID>'
 Get-ADOrganizationalUnit -Filter * -Properties gPLink
 Get-ADGPO -All
 ```
-> **Source:** handwritten p. 12.
 
 ---
 
@@ -154,7 +116,6 @@ Get-DomainObjectAcl -ResolveGUIDs |
 Find-InterestingDomainAcl -ResolveGUIDs |
   Where-Object { $_.IdentityReferenceName -match '<USER_OR_GROUP>' }
 ```
-> **Source:** handwritten p. 11.
 
 ---
 
@@ -173,7 +134,6 @@ Get-ADTrust -Filter *
 Get-ADForest | ForEach-Object { Get-ADTrust -Filter * }
 (Get-ADForest).Domains
 ```
-> **Source:** handwritten pp. 13–14.
 
 ---
 
@@ -190,7 +150,6 @@ Get-NetSession
 . C:\AD\Tools\SharpHound.ps1
 Invoke-BloodHound -CollectionMethod All
 ```
-> **Source:** handwritten pp. 10, 16.
 
 ---
 
@@ -217,4 +176,3 @@ winrs -r:<TARGET> cmd
 # Remote interactive PowerShell session
 Enter-PSSession -ComputerName <TARGET>
 ```
-> **Source:** handwritten pp. 15–16.

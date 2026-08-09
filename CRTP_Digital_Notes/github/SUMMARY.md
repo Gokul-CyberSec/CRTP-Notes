@@ -10,5 +10,3 @@
 * [06 — Kerberos & Delegation](06-KERBEROS-DELEGATION.md)
 * [07 — AD CS & Persistence](07-ADCS-PERSISTENCE.md)
 * [08 — Credential Hunting & Vaults](08-CREDENTIAL-HUNTING.md)
-* [09 — Handwritten Page Map](09-PAGE-MAP.md)
-* [10 — Lab Verification & Fallbacks](10-VERIFY-FROM-ORIGINAL.md)

