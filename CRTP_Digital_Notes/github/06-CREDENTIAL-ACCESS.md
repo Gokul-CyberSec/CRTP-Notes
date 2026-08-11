@@ -1,4 +1,5 @@
-# 05 — Credential Access + LSASS + DCSync
+# 06 — Credential Access & LSASS
+
 
 > [!IMPORTANT]
 > Gaining local administrative privileges on a machine allows extraction of credential material from the LSASS process memory, SAM registry hive, LSA secrets, or remotely via DCSync replication.

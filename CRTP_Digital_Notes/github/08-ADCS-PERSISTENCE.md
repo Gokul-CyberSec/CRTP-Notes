@@ -1,4 +1,5 @@
-# 07 — AD CS & Domain Persistence
+# 08 — AD CS & Persistence
+
 
 > [!NOTE]
 > Domain persistence techniques allow an attacker to maintain administrative control over a compromised Active Directory environment, survive password resets, and regain Domain Admin / Enterprise Admin access at will.

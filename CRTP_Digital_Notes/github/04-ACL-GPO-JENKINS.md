@@ -1,4 +1,4 @@
-# 03 — ACL, GPO, Jenkins and Permission Delegation Abuse
+# 04 — ACL, GPO & Jenkins Abuse
 
 > [!NOTE]
 > Active Directory object delegation and GPO misconfigurations frequently provide direct privilege escalation vectors to Domain Admin without requiring credential dumping.

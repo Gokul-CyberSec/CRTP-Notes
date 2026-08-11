@@ -9,14 +9,16 @@
 | **00** | Quick Reference — Master Attack Flow, Ticket Matrix, Troubleshooting, Loot Tracker, Kerbrute, Impacket, Bloody-AD | [00-QUICK-REFERENCE.md](00-QUICK-REFERENCE.md) |
 | **01** | AD Foundations, Kerberos, NTLM, Defense Evasion, Offensive .NET, MDE/MDI | [01-FOUNDATIONS.md](01-FOUNDATIONS.md) |
 | **02** | Initial SMB, Domain, User, Computer, Group, GPO, AdminSDHolder & Trust Enumeration | [02-ENUMERATION.md](02-ENUMERATION.md) |
-| **03** | ACL Abuse, GPO Relay, Jenkins Reverse Shells, Delegation | [03-ACL-GPO-JENKINS.md](03-ACL-GPO-JENKINS.md) |
-| **04** | Local Admin Hunting, WinRM, WMI, SCM, Netsh Portproxy | [04-LATERAL-MOVEMENT.md](04-LATERAL-MOVEMENT.md) |
-| **05** | Kerberoasting, AS-REP Roasting, LSASS, OPTH, DCSync | [05-CREDENTIAL-ACCESS.md](05-CREDENTIAL-ACCESS.md) |
-| **06** | Golden/Silver/Diamond Tickets, Unconstrained/Constrained Delegation, RBCD | [06-KERBEROS-DELEGATION.md](06-KERBEROS-DELEGATION.md) |
-| **07** | Domain Dominance (Skeleton Key, Custom SSP, DSRM, AdminSDHolder, DCSync ACL), AD CS ESC1, SIDHistory | [07-ADCS-PERSISTENCE.md](07-ADCS-PERSISTENCE.md) |
-| **08** | Credential Hunting — PSReadLine, KeePass, Vaults, VSS, NTDS | [08-CREDENTIAL-HUNTING.md](08-CREDENTIAL-HUNTING.md) |
-| **09** | Cross-Trust Attacks (Child → Parent ExtraSIDs, AD CS across trusts) & SQL Server Database Links | [09-CROSS-TRUST-AND-SQL.md](09-CROSS-TRUST-AND-SQL.md) |
-| **10** | Defensive Controls (LAPS, Cred Guard, Protected Users, SID Filtering) & Security Event IDs | [10-DEFENSIVE-CONTROLS-AND-EVENTS.md](10-DEFENSIVE-CONTROLS-AND-EVENTS.md) |
+| **03** | LDAP Enumeration Commands — Bitmask Rules, UAC Flags, PowerView, AD Module, `[adsisearcher]`, `ldapsearch` | [03-LDAP-ENUMERATION.md](03-LDAP-ENUMERATION.md) |
+| **04** | ACL Abuse, GPO Relay, Jenkins Reverse Shells, Delegation | [04-ACL-GPO-JENKINS.md](04-ACL-GPO-JENKINS.md) |
+| **05** | Local Admin Hunting, WinRM, WMI, SCM, Netsh Portproxy | [05-LATERAL-MOVEMENT.md](05-LATERAL-MOVEMENT.md) |
+| **06** | Kerberoasting, AS-REP Roasting, LSASS, OPTH, DCSync | [06-CREDENTIAL-ACCESS.md](06-CREDENTIAL-ACCESS.md) |
+| **07** | Golden/Silver/Diamond Tickets, Unconstrained/Constrained Delegation, RBCD | [07-KERBEROS-DELEGATION.md](07-KERBEROS-DELEGATION.md) |
+| **08** | Domain Dominance (Skeleton Key, Custom SSP, DSRM, AdminSDHolder, DCSync ACL), AD CS ESC1, SIDHistory | [08-ADCS-PERSISTENCE.md](08-ADCS-PERSISTENCE.md) |
+| **09** | Credential Hunting — PSReadLine, KeePass, Vaults, VSS, NTDS | [09-CREDENTIAL-HUNTING.md](09-CREDENTIAL-HUNTING.md) |
+| **10** | Cross-Trust Attacks (Child → Parent ExtraSIDs, AD CS across trusts) & SQL Server Database Links | [10-CROSS-TRUST-AND-SQL.md](10-CROSS-TRUST-AND-SQL.md) |
+| **11** | Defensive Controls (LAPS, Cred Guard, Protected Users, SID Filtering) & Security Event IDs | [11-DEFENSIVE-CONTROLS-AND-EVENTS.md](11-DEFENSIVE-CONTROLS-AND-EVENTS.md) |
+
 
 ---
 

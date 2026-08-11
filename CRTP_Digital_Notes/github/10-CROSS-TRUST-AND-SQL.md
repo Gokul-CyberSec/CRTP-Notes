@@ -1,4 +1,5 @@
-# 09 — Cross-Trust Attacks & SQL Server Links
+# 10 — Cross-Trust & SQL Server Links
+
 
 > [!IMPORTANT]
 > Cross-trust escalation allows an attacker who achieved Domain Admin in a child domain to compromise the forest root and achieve Enterprise Admin access. SQL Server database links provide cross-forest code execution paths across trust boundaries.

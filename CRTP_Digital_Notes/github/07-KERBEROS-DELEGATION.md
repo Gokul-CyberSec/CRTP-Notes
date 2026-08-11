@@ -1,4 +1,5 @@
-# 06 — Kerberos, Tickets and Delegation
+# 07 — Kerberos & Delegation
+
 
 > [!IMPORTANT]
 > Kerberos delegation allows a service to impersonate a user when accessing downstream services. Misconfigured delegation settings (Unconstrained, Constrained, or Resource-Based Constrained Delegation) are primary targets for domain privilege escalation.

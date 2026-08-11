@@ -1,4 +1,5 @@
-# 04 — Local Admin Hunting + Lateral Movement
+# 05 — Lateral Movement & Pivoting
+
 
 > [!TIP]
 > Lateral movement involves pivoting from an initial compromise to other systems across the Active Directory environment using local administrator privileges or valid domain credentials.

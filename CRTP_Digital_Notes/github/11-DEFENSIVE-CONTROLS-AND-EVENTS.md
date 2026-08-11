@@ -1,4 +1,5 @@
-# 10 — Defensive Controls & Event Monitoring Cheat Sheet
+# 11 — Defensive Controls & Event Logs
+
 
 > [!NOTE]
 > Understanding defensive controls and security Event IDs helps red teamers maintain OPSEC, anticipate security restrictions, and understand how attacks are audited in Active Directory.

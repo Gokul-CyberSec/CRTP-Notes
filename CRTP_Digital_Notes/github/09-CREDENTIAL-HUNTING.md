@@ -1,4 +1,5 @@
-# 08 — Credential Hunting + SAM / NTDS / Windows Vault
+# 09 — Credential Hunting & Vaults
+
 
 > [!TIP]
 > Credential hunting involves searching local file systems, memory, registry keys, password managers, and shadow copies for clear-text passwords, hashes, and API tokens.
